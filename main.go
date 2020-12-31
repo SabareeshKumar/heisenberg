@@ -23,6 +23,7 @@ func listen() {
 }
 
 func main() {
+	app.CreateBoard()
 	for {
 		listen()
 	}

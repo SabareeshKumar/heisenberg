@@ -30,7 +30,7 @@ func toCoordinates(index int) (string, error) {
 		return "", errors.New(errMsg)
 	}
 	index += 1
-	rank := int(math.Ceil(float64(index / 8)))
+	rank := int(math.Ceil(float64(index) / 8.0))
 	file := index % 8
 	if file == 0 {
 		// Remainder will be zero for last cell in a rank
