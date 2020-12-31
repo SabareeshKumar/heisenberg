@@ -18,7 +18,7 @@ type piece struct {
 }
 
 func (p *piece) move(mv boardMove) error {
-	piece := board.pieces[mv.From]
+	piece := game.board.pieces[mv.From]
 	if piece.id != p.id {
 		errMsg := fmt.Sprintf(
 			"'%s' is not at position '%s'", piece.name, mv.From)

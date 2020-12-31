@@ -1,30 +1,39 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/SabareeshKumar/heisenberg/app"
-	"log"
-	"os"
+	"strings"
 )
 
-func listen() {
-	reader := bufio.NewReader(os.Stdin)
-	writer := bufio.NewWriter(os.Stdout)
-	defer writer.Flush()
-	var move app.UserMove
-	fmt.Fscanln(reader, &move.From, &move.To)
-	move, err := app.MakeMove(move)
-	if err != nil {
-		log.Print(err)
-		return
+func play() bool {
+	fmt.Print("\nYour move (Enter 'q' to quit game): ")
+	var input string
+	fmt.Scan(&input)
+	if strings.ToLower(strings.Trim(input, " ")) == "q" {		
+		return false
 	}
-	fmt.Fprintln(writer, move)
+	move := app.UserMove{input, ""}
+	fmt.Scan(&move.To)	
+	myMove, err := app.MakeMove(move)
+	if err != nil {
+		fmt.Println(err)
+		return true
+	}
+	fmt.Println(myMove)
+	return true
 }
 
 func main() {
-	app.CreateBoard()
+	var colorChoice int
 	for {
-		listen()
+		fmt.Println("\nChoose a color:\n1. Black\n2. White")
+		fmt.Scanln(&colorChoice)
+		if colorChoice != 1 && colorChoice != 2 {
+			fmt.Println("Invalid choice")
+			continue
+		}
+		app.InitGame(colorChoice)
+		for play() { }
 	}
 }

@@ -2,15 +2,26 @@ package app
 
 import (
 	"errors"
-	"log"
 )
 
-var board *boardConfig
+// GameState represents status of active game
+type GameState struct {
+	board    *boardConfig
+	myPieces []*piece
+}
 
-// CreateBoard sets up a new game board
-func CreateBoard() {
-	board = newBoard()
-	log.Print("Created new board configuration")
+var game GameState
+
+// InitGame sets up a new game.
+func InitGame(colorChoice int) {
+	board := newBoard()
+	var myPieces []*piece
+	if colorChoice == black {
+		myPieces = board.pieces[48:]
+	} else {
+		myPieces = board.pieces[:16]
+	}
+	game = GameState{board, myPieces}
 }
 
 // MakeMove returns the computer's move given a move made by the user.
@@ -19,6 +30,7 @@ func MakeMove(move UserMove) (UserMove, error) {
 	if !isMoveLegal(uMove) {
 		return UserMove{}, errors.New("Illegal move")
 	}
+	board := game.board
 	err = board.alterPosition(uMove)
 	if err != nil {
 		return UserMove{}, err

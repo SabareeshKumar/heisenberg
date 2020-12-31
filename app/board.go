@@ -1,5 +1,9 @@
 package app
 
+import (
+	"errors"
+)
+
 type boardConfig struct {
 	pieces []*piece
 }
@@ -124,6 +128,9 @@ func newBoard() *boardConfig {
 
 func (brd *boardConfig) alterPosition(bm boardMove) error {
 	piece := brd.pieces[bm.From]
+	if piece == nil {
+		return errors.New("Invalid move")
+	}
 	err := piece.move(bm)
 	if err != nil {
 		return err
