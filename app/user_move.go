@@ -7,26 +7,26 @@ import (
 	"strings"
 )
 
-// Move represents move coordinates
-type Move struct {
+// UserMove represents move coordinates
+type UserMove struct {
 	From string
 	To   string
 }
 
-func (m Move) String() string {
+func (m UserMove) String() string {
 	return fmt.Sprintf("%s -> %s", m.From, m.To)
 }
 
-func (m Move) boardIndices() (int, int, error) {
+func (m UserMove) toBoardMove() (boardMove, error) {
 	fromIndex, err := toIndex(m.From)
 	if err != nil {
-		return 0, 0, err
+		return boardMove{}, err
 	}
 	toIndex, err := toIndex(m.To)
 	if err != nil {
-		return 0, 0, err
+		return boardMove{}, err
 	}
-	return fromIndex, toIndex, nil
+	return boardMove{fromIndex, toIndex}, nil
 }
 
 // Given a move coordinate like 'e4', this method will find the board index
@@ -50,9 +50,9 @@ func toIndex(m string) (int, error) {
 		errMsg := fmt.Sprintf("Invalid rank: '%s'", m)
 		return 0, errors.New(errMsg)
 	}
-	fileUpper := strings.ToUpper(fileStr)
+	fileUpper := strings.ToLower(fileStr)
 	// Convert file notation to integer. 'a' will be represented as 1 and so on
-	file := int([]rune(fileUpper)[0] - 65 + 1)
+	file := int([]rune(fileUpper)[0] - 97 + 1)
 	if file < 1 || file > 8 {
 		errMsg := fmt.Sprintf("Invalid file: '%s'", m)
 		return 0, errors.New(errMsg)
