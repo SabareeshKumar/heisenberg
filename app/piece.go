@@ -10,11 +10,21 @@ const (
 	white = 2
 )
 
+const (
+	king   = 1
+	queen  = 2
+	rook   = 3
+	bishop = 4
+	knight = 5
+	pawn   = 6
+)
+
 type piece struct {
-	id       int
-	name     string
-	color    int
-	position uint // position in powers of 2
+	id            int
+	name          string
+	color         int
+	position      uint // position in powers of 2
+	moveGenerator func(*piece, chan boardMove)
 }
 
 func (p *piece) move(mv boardMove) error {

@@ -7,7 +7,7 @@ import (
 // GameState represents status of active game
 type GameState struct {
 	board    *boardConfig
-	myPieces []*piece
+	myPieces map[int]*piece
 }
 
 var game GameState
@@ -15,13 +15,17 @@ var game GameState
 // InitGame sets up a new game.
 func InitGame(colorChoice int) {
 	board := newBoard()
-	var myPieces []*piece
-	if colorChoice == black {
-		myPieces = board.pieces[48:]
-	} else {
-		myPieces = board.pieces[:16]
-	}
+	myPieces := make(map[int]*piece, 16)
 	game = GameState{board, myPieces}
+	if colorChoice == white {
+		for i := 48; i <= 63; i++ {
+			myPieces[i] = board.pieces[i]
+		}
+		return
+	}
+	for i := 0; i <= 15; i++ {
+		myPieces[i] = board.pieces[i]
+	}
 }
 
 // MakeMove returns the computer's move given a move made by the user.
@@ -35,12 +39,12 @@ func MakeMove(move UserMove) (UserMove, error) {
 	if err != nil {
 		return UserMove{}, err
 	}
-	myMove := myMove()
-	err = board.alterPosition(myMove)
+	myMov := myMove()
+	err = board.alterPosition(myMov)
 	if err != nil {
 		return UserMove{}, err
 	}
-	myMoveCoord, err := myMove.toUserMove()
+	myMoveCoord, err := myMov.toUserMove()
 	if err != nil {
 		return UserMove{}, err
 	}
@@ -48,8 +52,29 @@ func MakeMove(move UserMove) (UserMove, error) {
 }
 
 func myMove() boardMove {
-	// TODO: compute best move
-	return boardMove{52, 44}
+	// Create a channel to receive moves on the fly
+	moveCh := make(chan boardMove)
+	for _, piece := range game.myPieces {
+		// Move calculation is concurrent
+		go piece.moveGenerator(piece, moveCh)
+	}
+	searchResults := make(chan searchResult)
+	var bestMove boardMove
+	for move := range moveCh {
+		if !isMoveLegal(move) {
+			continue
+		}
+		// Search is concurrent
+		go search(move, searchResults)
+		// TODO: compute best move
+		bestMove = move
+		break
+	}
+	for _ = range searchResults {
+		// Choose best result
+		break
+	}
+	return bestMove
 }
 
 func isMoveLegal(_ boardMove) bool {

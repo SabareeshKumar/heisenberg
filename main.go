@@ -10,11 +10,12 @@ func play() bool {
 	fmt.Print("\nYour move (Enter 'q' to quit game): ")
 	var input string
 	fmt.Scan(&input)
-	if strings.ToLower(strings.Trim(input, " ")) == "q" {		
+	if strings.ToLower(strings.Trim(input, " ")) == "q" {
 		return false
 	}
 	move := app.UserMove{input, ""}
-	fmt.Scan(&move.To)	
+	fmt.Scan(&move.To)
+	fmt.Print("Thinking...")
 	myMove, err := app.MakeMove(move)
 	if err != nil {
 		fmt.Println(err)
@@ -34,6 +35,7 @@ func main() {
 			continue
 		}
 		app.InitGame(colorChoice)
-		for play() { }
+		for play() {
+		}
 	}
 }
