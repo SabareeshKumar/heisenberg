@@ -15,7 +15,6 @@ func play() bool {
 	}
 	move := app.UserMove{input, ""}
 	fmt.Scan(&move.To)
-	fmt.Print("Thinking...")
 	myMove, err := app.MakeMove(move)
 	if err != nil {
 		fmt.Println(err)

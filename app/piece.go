@@ -25,6 +25,7 @@ type piece struct {
 	color         int
 	position      uint // position in powers of 2
 	moveGenerator func(*piece, chan boardMove)
+	captured      bool
 }
 
 func (p *piece) move(mv boardMove) error {
