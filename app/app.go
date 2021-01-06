@@ -114,18 +114,56 @@ func MakeMove(move UserMove) (UserMove, error) {
 
 func isMoveLegal(mv boardMove) bool {
 	board := game.board
-	piece := board.pieces[mv.From]
-	if piece.captured {
+	pc := board.pieces[mv.From]
+	if pc.captured {
 		// Cannot move dead piece
 		return false
 	}
 	capturedPc := board.pieces[mv.To]
-	if capturedPc != nil && piece.color == capturedPc.color {
-		// Cannot capture own piece
+	if capturedPc != nil {
+		if pc.color == capturedPc.color {
+			// Cannot capture own piece
+			return false
+		}
+		if capturedPc.id == king {
+			// Cannot capture king
+			return false
+		}
+	}
+	var kingPc *piece
+	var otherPieces map[int][]*piece
+	if pc.color == game.myColor {
+		kingPc = game.myPieces[king][0]
+		otherPieces = game.otherPieces
+	} else {
+		kingPc = game.otherPieces[king][0]
+		otherPieces = game.myPieces
+	}
+	defer board.undoMove(mv)
+	// Check if move results in king in check
+	board.alterPosition(mv)
+	if inCheck(kingPc, otherPieces) {
 		return false
 	}
-	// TODO: Check if move results in king in check
 	// TODO: If move is castling, check its legality
 	// TODO: If move is en passant, check its legality
 	return true
+}
+
+func inCheck(kingPc *piece, otherPieces map[int][]*piece) bool {
+	brdIndex := int(math.Log2(float64(kingPc.position)))
+	for _, pieces := range otherPieces {
+		for _, piece := range pieces {
+			if piece.captured || piece.id == king {
+				continue
+			}
+			moves := piece.moveGenerator(piece)
+			for _, move := range moves {
+				if move.To == brdIndex {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

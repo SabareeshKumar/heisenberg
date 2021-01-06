@@ -14,6 +14,9 @@ func search(
 	if myTurn {
 		maxScore := float32(math.MinInt32)
 		for _, move := range generateMoves(myTurn) {
+			if !isMoveLegal(move) {
+				continue
+			}
 			board.alterPosition(move)
 			_, score := search(!myTurn, maxScore, depth+1)
 			board.undoMove(move)
@@ -30,6 +33,9 @@ func search(
 	}
 	minScore := float32(math.MaxInt32)
 	for _, move := range generateMoves(myTurn) {
+		if !isMoveLegal(move) {
+			continue
+		}
 		board.alterPosition(move)
 		_, score := search(!myTurn, minScore, depth+1)
 		board.undoMove(move)
