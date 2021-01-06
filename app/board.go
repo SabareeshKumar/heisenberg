@@ -167,15 +167,35 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	if piece == nil {
 		return errors.New("Invalid move")
 	}
-	err := piece.move(bm)
-	if err != nil {
-		return err
-	}
 	capturedPc := brd.pieces[bm.To]
 	if capturedPc != nil {
 		capturedPc.captured = true
+		if piece.color == game.myColor {
+			game.materialBalance += weights[capturedPc.id]
+		} else {
+			game.materialBalance -= weights[capturedPc.id]
+		}
 	}
 	brd.pieces[bm.From] = nil
 	brd.pieces[bm.To] = piece
+	piece.position = 1 << bm.To
+	piece.lastCapturedPc = capturedPc
 	return nil
+}
+
+func (brd *boardConfig) undoMove(bm boardMove) {
+	piece := brd.pieces[bm.To]
+	brd.pieces[bm.From] = piece
+	lastCaptured := piece.lastCapturedPc
+	brd.pieces[bm.To] = lastCaptured
+	piece.position = 1 << bm.From
+	if lastCaptured == nil {
+		return
+	}
+	lastCaptured.captured = false
+	if piece.color == game.myColor {
+		game.materialBalance -= weights[lastCaptured.id]
+	} else {
+		game.materialBalance += weights[lastCaptured.id]
+	}
 }

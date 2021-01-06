@@ -3,14 +3,16 @@ package app
 import (
 	"errors"
 	"fmt"
+	"math"
 )
 
 // GameState represents status of active game
 type GameState struct {
-	board       *boardConfig
-	myColor     int
-	myPieces    map[int][]*piece
-	otherPieces map[int][]*piece
+	board           *boardConfig
+	myColor         int
+	myPieces        map[int][]*piece
+	otherPieces     map[int][]*piece
+	materialBalance int
 }
 
 var game GameState
@@ -44,17 +46,12 @@ func InitGame(colorChoice int) {
 // MakeMove returns the computer's move given a move made by the user.
 func MakeMove(move UserMove) (UserMove, error) {
 	uMove, err := move.toBoardMove()
-	moveCh := make(chan boardMove)
 	piece := game.board.pieces[uMove.From]
 	if piece.color == game.myColor {
 		return UserMove{}, errors.New("Cannot move opponent piece")
 	}
-	go func() {
-		piece.moveGenerator(piece, moveCh)
-		close(moveCh)
-	}()
 	valid := false
-	for move := range moveCh {
+	for _, move := range piece.moveGenerator(piece) {
 		if uMove == move {
 			valid = true
 			break
@@ -72,7 +69,7 @@ func MakeMove(move UserMove) (UserMove, error) {
 	if err != nil {
 		return UserMove{}, err
 	}
-	myMov := myMove()
+	myMov, _ := search(true, float32(math.MaxInt32), 1)
 	err = board.alterPosition(myMov)
 	if err != nil {
 		return UserMove{}, err
@@ -84,36 +81,36 @@ func MakeMove(move UserMove) (UserMove, error) {
 	return myMoveCoord, nil
 }
 
-func myMove() boardMove {
-	// Create a channel to receive moves on the fly
-	moveCh := make(chan boardMove)
-	for _, pieces := range game.myPieces {
-		for _, piece := range pieces {
-			if piece.captured {
-				continue
-			}
-			// Move calculation is concurrent
-			go piece.moveGenerator(piece, moveCh)
-		}
-	}
-	searchResults := make(chan searchResult)
-	var bestMove boardMove
-	for move := range moveCh {
-		if !isMoveLegal(move) {
-			continue
-		}
-		// Search is concurrent
-		go search(move, searchResults)
-		// TODO: compute best move
-		bestMove = move
-		break
-	}
-	for _ = range searchResults {
-		// Choose best result
-		break
-	}
-	return bestMove
-}
+// func myMove() boardMove {
+// 	// Create a channel to receive moves on the fly
+// 	moveCh := make(chan boardMove)
+// 	for _, pieces := range game.myPieces {
+// 		for _, piece := range pieces {
+// 			if piece.captured {
+// 				continue
+// 			}
+// 			// Move calculation is concurrent
+// 			go piece.moveGenerator(piece, moveCh)
+// 		}
+// 	}
+// 	searchResults := make(chan searchResult)
+// 	var bestMove boardMove
+// 	for move := range moveCh {
+// 		if !isMoveLegal(move) {
+// 			continue
+// 		}
+// 		// Search is concurrent
+// 		go search(move, searchResults)
+// 		// TODO: compute best move
+// 		bestMove = move
+// 		break
+// 	}
+// 	for _ = range searchResults {
+// 		// Choose best result
+// 		break
+// 	}
+// 	return bestMove
+// }
 
 func isMoveLegal(mv boardMove) bool {
 	board := game.board
