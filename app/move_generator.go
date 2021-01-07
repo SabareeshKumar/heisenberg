@@ -183,33 +183,66 @@ func pawnMoves(piece *piece) []boardMove {
 	moves := make([]boardMove, 0)
 	pos := int(math.Log2(float64(piece.position)))
 	rank, file := getRankFile(pos)
-	// TODO: handle en-passant
 	pieces := game.board.pieces
 	if piece.color == white {
-		if rank < 8 && pieces[pos+8] == nil { // Up
+		if rank <= 7 && pieces[pos+8] == nil { // Up
 			moves = append(moves, boardMove{From: pos, To: pos + 8})
+			if rank == 2 && pieces[pos+16] == nil { // Up twice
+				moves = append(moves, boardMove{From: pos, To: pos + 16})
+			}
 		}
-		if file > 1 && rank < 8 && pieces[pos+7] != nil {
+		if file >= 2 && rank < 8 {
 			// Upper diagonal left
-			moves = append(moves, boardMove{From: pos, To: pos + 7})
+			if pieces[pos+7] != nil {
+				moves = append(moves, boardMove{From: pos, To: pos + 7})
+			} else {
+				sidePc := pieces[pos-1]
+				if sidePc != nil && sidePc.enpassantMove == game.moveCount {
+					moves = append(moves, boardMove{From: pos, To: pos + 7})
+				}
+			}
 		}
-		if file < 8 && rank < 8 && pieces[pos+9] != nil {
+		if file <= 7 && rank < 8 {
 			// Upper diagonal right
-			moves = append(moves, boardMove{From: pos, To: pos + 9})
+			if pieces[pos+9] != nil {
+				moves = append(moves, boardMove{From: pos, To: pos + 9})
+			} else {
+				sidePc := pieces[pos+1]
+				if sidePc != nil && sidePc.enpassantMove == game.moveCount {
+					moves = append(moves, boardMove{From: pos, To: pos + 9})
+				}
+			}
 		}
 		return moves
 	}
 	// Color is black so we need to move reverse in terms of board numbering
 	if rank >= 2 && pieces[pos-8] == nil { // Down
 		moves = append(moves, boardMove{From: pos, To: pos - 8})
+		if rank == 7 && pieces[pos-16] == nil { // Down twice
+			moves = append(moves, boardMove{From: pos, To: pos - 16})
+		}
 	}
-	if file >= 2 && rank >= 2 && pieces[pos-9] != nil {
+	if file >= 2 && rank >= 2 {
 		// Lower diagonal left
-		moves = append(moves, boardMove{From: pos, To: pos - 9})
+		if pieces[pos-9] != nil {
+			moves = append(moves, boardMove{From: pos, To: pos - 9})
+		} else {
+			sidePc := pieces[pos-1]
+			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
+				moves = append(moves, boardMove{From: pos, To: pos - 9})
+			}
+		}
 	}
-	if file <= 7 && rank >= 2 && pieces[pos-7] != nil {
+	if file <= 7 && rank >= 2 {
 		// Lower diagonal right
-		moves = append(moves, boardMove{From: pos, To: pos - 7})
+		if pieces[pos-7] != nil {
+			moves = append(moves, boardMove{From: pos, To: pos - 7})
+		} else {
+			sidePc := pieces[pos+1]
+			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
+				moves = append(moves, boardMove{From: pos, To: pos - 7})
+			}
+		}
 	}
 	return moves
 }

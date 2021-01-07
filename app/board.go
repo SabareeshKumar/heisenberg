@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"math"
 )
 
 type boardConfig struct {
@@ -17,6 +18,7 @@ func newBoard() *boardConfig {
 		position:      1 << 0,
 		moveGenerator: rookMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[1] = &piece{
 		id:            knight,
@@ -25,6 +27,7 @@ func newBoard() *boardConfig {
 		position:      1 << 1,
 		moveGenerator: knightMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[2] = &piece{
 		id:            bishop,
@@ -33,6 +36,7 @@ func newBoard() *boardConfig {
 		position:      1 << 2,
 		moveGenerator: bishopMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[3] = &piece{
 		id:            queen,
@@ -41,6 +45,7 @@ func newBoard() *boardConfig {
 		position:      1 << 3,
 		moveGenerator: queenMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[4] = &piece{
 		id:            king,
@@ -49,6 +54,7 @@ func newBoard() *boardConfig {
 		position:      1 << 4,
 		moveGenerator: kingMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[5] = &piece{
 		id:            bishop,
@@ -57,6 +63,7 @@ func newBoard() *boardConfig {
 		position:      1 << 5,
 		moveGenerator: bishopMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[6] = &piece{
 		id:            knight,
@@ -65,6 +72,7 @@ func newBoard() *boardConfig {
 		position:      1 << 6,
 		moveGenerator: knightMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[7] = &piece{
 		id:            rook,
@@ -73,6 +81,7 @@ func newBoard() *boardConfig {
 		position:      1 << 7,
 		moveGenerator: rookMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	for i := 8; i <= 15; i++ {
 		pieces[i] = &piece{
@@ -82,6 +91,7 @@ func newBoard() *boardConfig {
 			position:      1 << i,
 			moveGenerator: pawnMoves,
 			captured:      false,
+			enpassantMove: -1,
 		}
 	}
 	for i := 48; i <= 55; i++ {
@@ -92,6 +102,7 @@ func newBoard() *boardConfig {
 			position:      1 << i,
 			moveGenerator: pawnMoves,
 			captured:      false,
+			enpassantMove: -1,
 		}
 	}
 	// Create Black pieces
@@ -102,6 +113,7 @@ func newBoard() *boardConfig {
 		position:      1 << 56,
 		moveGenerator: rookMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[57] = &piece{
 		id:            knight,
@@ -110,6 +122,7 @@ func newBoard() *boardConfig {
 		position:      1 << 57,
 		moveGenerator: knightMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[58] = &piece{
 		id:            bishop,
@@ -118,6 +131,7 @@ func newBoard() *boardConfig {
 		position:      1 << 58,
 		moveGenerator: bishopMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[59] = &piece{
 		id:            queen,
@@ -126,6 +140,7 @@ func newBoard() *boardConfig {
 		position:      1 << 59,
 		moveGenerator: queenMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[60] = &piece{
 		id:            king,
@@ -134,6 +149,7 @@ func newBoard() *boardConfig {
 		position:      1 << 60,
 		moveGenerator: kingMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[61] = &piece{
 		id:            bishop,
@@ -142,6 +158,7 @@ func newBoard() *boardConfig {
 		position:      1 << 61,
 		moveGenerator: bishopMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[62] = &piece{
 		id:            knight,
@@ -150,6 +167,7 @@ func newBoard() *boardConfig {
 		position:      1 << 62,
 		moveGenerator: knightMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	pieces[63] = &piece{
 		id:            rook,
@@ -158,6 +176,7 @@ func newBoard() *boardConfig {
 		position:      1 << 63,
 		moveGenerator: rookMoves,
 		captured:      false,
+		enpassantMove: -1,
 	}
 	return &boardConfig{pieces}
 }
@@ -180,15 +199,23 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	brd.pieces[bm.To] = piece
 	piece.position = 1 << bm.To
 	piece.lastCapturedPc = capturedPc
+	game.moveCount += 1
+	if piece.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
+		piece.enpassantMove = game.moveCount
+	}
 	return nil
 }
 
 func (brd *boardConfig) undoMove(bm boardMove) {
+	game.moveCount -= 1
 	piece := brd.pieces[bm.To]
 	brd.pieces[bm.From] = piece
 	lastCaptured := piece.lastCapturedPc
 	brd.pieces[bm.To] = lastCaptured
 	piece.position = 1 << bm.From
+	if piece.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
+		piece.enpassantMove = -1
+	}
 	if lastCaptured == nil {
 		return
 	}

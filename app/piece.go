@@ -31,4 +31,7 @@ type piece struct {
 	moveGenerator  func(*piece) []boardMove
 	captured       bool
 	lastCapturedPc *piece
+	// move in which this pawn moved 2 squares so that it can be captured by
+	// en-passant move by some other pawn.
+	enpassantMove int
 }

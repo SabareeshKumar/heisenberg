@@ -2,7 +2,6 @@ package app
 
 import (
 	"errors"
-	"fmt"
 	"math"
 )
 
@@ -13,6 +12,7 @@ type GameState struct {
 	myPieces        map[int][]*piece
 	otherPieces     map[int][]*piece
 	materialBalance int
+	moveCount       int
 }
 
 var game GameState
@@ -24,6 +24,7 @@ func InitGame(colorChoice int) {
 	board := newBoard()
 	game = GameState{}
 	game.board = board
+	game.moveCount = 0
 	for i := 0; i <= 15; i++ {
 		piece := board.pieces[i]
 		whitePieces[piece.id] = append(whitePieces[piece.id], piece)
@@ -43,12 +44,15 @@ func InitGame(colorChoice int) {
 	game.myPieces = whitePieces
 }
 
-// MakeMove returns the computer's move given a move made by the user.
-func MakeMove(move UserMove) (UserMove, error) {
+// MakeMove verifies if the user move if valid
+func MakeMove(move UserMove) error {
 	uMove, err := move.toBoardMove()
+	if err != nil {
+		return err
+	}
 	piece := game.board.pieces[uMove.From]
 	if piece.color == game.myColor {
-		return UserMove{}, errors.New("Cannot move opponent piece")
+		return errors.New("Cannot move opponent piece")
 	}
 	valid := false
 	for _, move := range piece.moveGenerator(piece) {
@@ -58,19 +62,18 @@ func MakeMove(move UserMove) (UserMove, error) {
 		}
 	}
 	if !valid {
-		return UserMove{}, errors.New("Invalid move")
+		return errors.New("Invalid move")
 	}
 	if !isMoveLegal(uMove) {
-		return UserMove{}, errors.New("Illegal move")
+		return errors.New("Illegal move")
 	}
-	fmt.Print("Thinking...")
-	board := game.board
-	err = board.alterPosition(uMove)
-	if err != nil {
-		return UserMove{}, err
-	}
+	return game.board.alterPosition(uMove)
+}
+
+// MyMove computes a move for the engine
+func MyMove() (UserMove, error) {
 	myMov, _ := search(true, float32(math.MaxInt32), 1)
-	err = board.alterPosition(myMov)
+	err := game.board.alterPosition(myMov)
 	if err != nil {
 		return UserMove{}, err
 	}

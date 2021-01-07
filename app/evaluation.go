@@ -21,10 +21,10 @@ func pawnStructure(myTurn bool) (isolated, doubled, blocked int) {
 		rank, file := getRankFile(brdIndex)
 		columns[file-1] += 1
 		var blockedPos int
-		if myTurn && rank < 8 {
-			blockedPos = 1 << (brdIndex + 8)
-		} else if !myTurn && rank > 1 {
-			blockedPos = 1 << (brdIndex - 8)
+		if piece.color == white && rank < 8 {
+			blockedPos = brdIndex + 8
+		} else if piece.color == black && rank > 1 {
+			blockedPos = brdIndex - 8
 		} else {
 			continue
 		}
