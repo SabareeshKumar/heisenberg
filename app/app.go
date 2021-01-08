@@ -5,6 +5,15 @@ import (
 	"math"
 )
 
+// InProgress denotes if game is in progress
+const InProgress = 0
+// Win denotes if game is won by opponent
+const Win = 1
+// Lost denotes if game is won by opponent
+const Lost = 2
+// Stalemate denotes if game is a stalemate
+const Stalemate = 3
+
 // GameState represents status of active game
 type GameState struct {
 	board           *boardConfig
@@ -84,37 +93,6 @@ func MyMove() (UserMove, error) {
 	return myMoveCoord, nil
 }
 
-// func myMove() boardMove {
-// 	// Create a channel to receive moves on the fly
-// 	moveCh := make(chan boardMove)
-// 	for _, pieces := range game.myPieces {
-// 		for _, piece := range pieces {
-// 			if piece.captured {
-// 				continue
-// 			}
-// 			// Move calculation is concurrent
-// 			go piece.moveGenerator(piece, moveCh)
-// 		}
-// 	}
-// 	searchResults := make(chan searchResult)
-// 	var bestMove boardMove
-// 	for move := range moveCh {
-// 		if !isMoveLegal(move) {
-// 			continue
-// 		}
-// 		// Search is concurrent
-// 		go search(move, searchResults)
-// 		// TODO: compute best move
-// 		bestMove = move
-// 		break
-// 	}
-// 	for _ = range searchResults {
-// 		// Choose best result
-// 		break
-// 	}
-// 	return bestMove
-// }
-
 func isMoveLegal(mv boardMove) bool {
 	board := game.board
 	pc := board.pieces[mv.From]
@@ -149,7 +127,6 @@ func isMoveLegal(mv boardMove) bool {
 		return false
 	}
 	// TODO: If move is castling, check its legality
-	// TODO: If move is en passant, check its legality
 	return true
 }
 
@@ -157,7 +134,7 @@ func inCheck(kingPc *piece, otherPieces map[int][]*piece) bool {
 	brdIndex := int(math.Log2(float64(kingPc.position)))
 	for _, pieces := range otherPieces {
 		for _, piece := range pieces {
-			if piece.captured || piece.id == king {
+			if piece.captured {
 				continue
 			}
 			moves := piece.moveGenerator(piece)
@@ -169,4 +146,24 @@ func inCheck(kingPc *piece, otherPieces map[int][]*piece) bool {
 		}
 	}
 	return false
+}
+
+// GameStatus returns status of the current game
+func GameStatus(myTurn bool) int {
+	if myTurn {
+		if legalMoves(myTurn) > 0 {
+			return InProgress
+		}
+		if inCheck(game.myPieces[king][0], game.otherPieces) {
+			return Win
+		}
+		return Stalemate
+	}
+	if legalMoves(myTurn) > 0 {
+		return InProgress
+	}
+	if inCheck(game.otherPieces[king][0], game.myPieces) {
+		return Lost
+	}
+	return Stalemate
 }

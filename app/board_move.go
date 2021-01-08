@@ -8,8 +8,9 @@ import (
 )
 
 type boardMove struct {
-	From int
-	To   int
+	From     int
+	To       int
+	captured *piece
 }
 
 func (m boardMove) toUserMove() (UserMove, error) {

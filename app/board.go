@@ -186,7 +186,7 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	if piece == nil {
 		return errors.New("Invalid move")
 	}
-	capturedPc := brd.pieces[bm.To]
+	capturedPc := bm.captured
 	if capturedPc != nil {
 		capturedPc.captured = true
 		if piece.color == game.myColor {
@@ -198,7 +198,6 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	brd.pieces[bm.From] = nil
 	brd.pieces[bm.To] = piece
 	piece.position = 1 << bm.To
-	piece.lastCapturedPc = capturedPc
 	game.moveCount += 1
 	if piece.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
 		piece.enpassantMove = game.moveCount
@@ -210,19 +209,19 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	game.moveCount -= 1
 	piece := brd.pieces[bm.To]
 	brd.pieces[bm.From] = piece
-	lastCaptured := piece.lastCapturedPc
-	brd.pieces[bm.To] = lastCaptured
+	capturedPc := bm.captured
+	brd.pieces[bm.To] = capturedPc
 	piece.position = 1 << bm.From
 	if piece.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
 		piece.enpassantMove = -1
 	}
-	if lastCaptured == nil {
+	if capturedPc == nil {
 		return
 	}
-	lastCaptured.captured = false
+	capturedPc.captured = false
 	if piece.color == game.myColor {
-		game.materialBalance -= weights[lastCaptured.id]
+		game.materialBalance -= weights[capturedPc.id]
 	} else {
-		game.materialBalance += weights[lastCaptured.id]
+		game.materialBalance += weights[capturedPc.id]
 	}
 }

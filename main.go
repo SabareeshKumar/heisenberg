@@ -8,10 +8,26 @@ import (
 
 var myTurn = false
 
+func toggleTurn() bool {
+	myTurn = !myTurn
+	status := app.GameStatus(myTurn)
+	if status == app.InProgress {
+		return true
+	}
+	if status == app.Win {
+		fmt.Println("You won !!")
+		return false
+	}
+	if status == app.Lost {
+		fmt.Println("You lost :(")
+		return false
+	}
+	fmt.Println("Oops. It's a stalemate")
+	return false
+
+}
+
 func play() bool {
-	defer func() {
-		myTurn = !myTurn
-	}()
 	if myTurn {
 		fmt.Print("Thinking...")
 		move, err := app.MyMove()
@@ -20,7 +36,7 @@ func play() bool {
 			return true
 		}
 		fmt.Println(move)
-		return true
+		return toggleTurn()
 	}
 	fmt.Print("\nYour move (Enter 'q' to quit game): ")
 	var input string
@@ -35,7 +51,7 @@ func play() bool {
 		fmt.Println(err)
 		return true
 	}
-	return true
+	return toggleTurn()
 }
 
 func main() {

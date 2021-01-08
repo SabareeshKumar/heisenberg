@@ -7,7 +7,7 @@ import (
 func search(
 	myTurn bool, bestParentScore float32, depth int) (boardMove, float32) {
 	if depth > maxDepth {
-		return boardMove{}, eval(myTurn)
+		return boardMove{}, eval()
 	}
 	var bestMove boardMove
 	board := game.board

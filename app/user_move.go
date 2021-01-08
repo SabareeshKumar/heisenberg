@@ -26,7 +26,7 @@ func (m UserMove) toBoardMove() (boardMove, error) {
 	if err != nil {
 		return boardMove{}, err
 	}
-	return boardMove{fromIndex, toIndex}, nil
+	return boardMove{fromIndex, toIndex, game.board.pieces[toIndex]}, nil
 }
 
 // Given a move coordinate like 'e4', this method will find the board index

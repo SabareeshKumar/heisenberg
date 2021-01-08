@@ -69,19 +69,19 @@ func legalMoves(myTurn bool) int {
 	return moveCount
 }
 
-func eval(myTurn bool) float32 {
-	moveCount := legalMoves(myTurn)
+func eval() float32 {
+	moveCount := legalMoves(true)
 	if moveCount == 0 {
 		// TODO: may also be a stalemate
 		return float32(math.MinInt32)
 	}
-	_moveCount := legalMoves(!myTurn)
+	_moveCount := legalMoves(false)
 	if _moveCount == 0 {
 		// TODO: may also be a stalemate
 		return float32(math.MaxInt32)
 	}
-	isolated, doubled, blocked := pawnStructure(myTurn)
-	_isolated, _doubled, _blocked := pawnStructure(!myTurn)
+	isolated, doubled, blocked := pawnStructure(true)
+	_isolated, _doubled, _blocked := pawnStructure(false)
 	score := float32(game.materialBalance)
 	score -= 0.5 * float32(isolated-_isolated+doubled-_doubled+
 		blocked-_blocked)

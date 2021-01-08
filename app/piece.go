@@ -24,13 +24,12 @@ var weights = map[int]int{
 }
 
 type piece struct {
-	id             int
-	name           string
-	color          int
-	position       uint // position in powers of 2
-	moveGenerator  func(*piece) []boardMove
-	captured       bool
-	lastCapturedPc *piece
+	id            int
+	name          string
+	color         int
+	position      uint // position in powers of 2
+	moveGenerator func(*piece) []boardMove
+	captured      bool
 	// move in which this pawn moved 2 squares so that it can be captured by
 	// en-passant move by some other pawn.
 	enpassantMove int
