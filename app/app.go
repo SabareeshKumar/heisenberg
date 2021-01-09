@@ -7,10 +7,13 @@ import (
 
 // InProgress denotes if game is in progress
 const InProgress = 0
+
 // Win denotes if game is won by opponent
 const Win = 1
+
 // Lost denotes if game is won by opponent
 const Lost = 2
+
 // Stalemate denotes if game is a stalemate
 const Stalemate = 3
 
@@ -120,13 +123,33 @@ func isMoveLegal(mv boardMove) bool {
 		kingPc = game.otherPieces[king][0]
 		otherPieces = game.myPieces
 	}
-	defer board.undoMove(mv)
-	// Check if move results in king in check
-	board.alterPosition(mv)
-	if inCheck(kingPc, otherPieces) {
-		return false
+	if mv.castlingFrom > 0 {
+		// Check if castling is valid. It inherently checks if move
+		// results in check.
+		return isCastlingValid(mv, otherPieces)
 	}
-	// TODO: If move is castling, check its legality
+	defer board.undoMove(mv)
+	board.alterPosition(mv)
+	// Check if move results in king in check
+	return !inCheck(kingPc, otherPieces)
+}
+
+func isCastlingValid(bm boardMove, otherPieces map[int][]*piece) bool {
+	for _, pieces := range otherPieces {
+		for _, piece := range pieces {
+			if piece.captured {
+				continue
+			}
+			moves := piece.moveGenerator(piece)
+			for _, move := range moves {
+				if move.To == bm.From ||
+					move.To == bm.To ||
+					move.To == bm.castlingTo {
+					return false
+				}
+			}
+		}
+	}
 	return true
 }
 

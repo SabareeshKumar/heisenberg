@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -26,7 +27,32 @@ func (m UserMove) toBoardMove() (boardMove, error) {
 	if err != nil {
 		return boardMove{}, err
 	}
-	return boardMove{fromIndex, toIndex, game.board.pieces[toIndex]}, nil
+	pieces := game.board.pieces
+	piece := pieces[fromIndex]
+	if piece.id != king || int(math.Abs(float64(toIndex-fromIndex))) == 1 {
+		bm := boardMove{
+			From:         fromIndex,
+			To:           toIndex,
+			castlingFrom: -1,
+			castlingTo:   -1,
+			captured:     pieces[toIndex],
+		}
+		return bm, nil
+	}
+	bm := boardMove{}
+	bm.From = fromIndex
+	bm.To = toIndex
+	bm.captured = nil
+	if m.To > m.From {
+		// king side castling
+		bm.castlingFrom = fromIndex + 3
+		bm.castlingTo = toIndex - 1
+	} else {
+		// queen side castling
+		bm.castlingFrom = fromIndex - 4
+		bm.castlingTo = toIndex + 1
+	}
+	return bm, nil
 }
 
 // Given a move coordinate like 'e4', this method will find the board index

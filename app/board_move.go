@@ -8,9 +8,11 @@ import (
 )
 
 type boardMove struct {
-	From     int
-	To       int
-	captured *piece
+	From         int
+	To           int
+	castlingFrom int
+	castlingTo   int
+	captured     *piece
 }
 
 func (m boardMove) toUserMove() (UserMove, error) {

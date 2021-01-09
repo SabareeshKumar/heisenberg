@@ -199,9 +199,18 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	brd.pieces[bm.To] = piece
 	piece.position = 1 << bm.To
 	game.moveCount += 1
+	piece.moveCount += 1
 	if piece.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
 		piece.enpassantMove = game.moveCount
 	}
+	if bm.castlingFrom == -1 {
+		return nil
+	}
+	rookPc := brd.pieces[bm.castlingFrom]
+	brd.pieces[bm.castlingFrom] = nil
+	brd.pieces[bm.castlingTo] = rookPc
+	rookPc.position = 1 << bm.castlingTo
+	rookPc.moveCount += 1
 	return nil
 }
 
@@ -212,8 +221,16 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	capturedPc := bm.captured
 	brd.pieces[bm.To] = capturedPc
 	piece.position = 1 << bm.From
+	piece.moveCount -= 1
 	if piece.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
 		piece.enpassantMove = -1
+	}
+	if bm.castlingFrom != -1 {
+		rookPc := brd.pieces[bm.castlingTo]
+		brd.pieces[bm.castlingFrom] = rookPc
+		brd.pieces[bm.castlingTo] = nil
+		rookPc.position = 1 << bm.castlingFrom
+		rookPc.moveCount -= 1
 	}
 	if capturedPc == nil {
 		return
