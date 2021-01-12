@@ -18,7 +18,8 @@ func (m UserMove) String() string {
 	return fmt.Sprintf("%s -> %s", m.From, m.To)
 }
 
-func (m UserMove) toBoardMove() (boardMove, error) {
+// ToBoardMove converts move coordinates like e2 to board indices like 12.
+func (m UserMove) ToBoardMove() (boardMove, error) {
 	fromIndex, err := toIndex(m.From)
 	if err != nil {
 		return boardMove{}, err
@@ -36,6 +37,7 @@ func (m UserMove) toBoardMove() (boardMove, error) {
 			castlingFrom: -1,
 			castlingTo:   -1,
 			captured:     pieces[toIndex],
+			PromotedPc:   -1,
 		}
 		return bm, nil
 	}
@@ -52,6 +54,7 @@ func (m UserMove) toBoardMove() (boardMove, error) {
 		bm.castlingFrom = fromIndex - 4
 		bm.castlingTo = toIndex + 1
 	}
+	bm.PromotedPc = -1
 	return bm, nil
 }
 

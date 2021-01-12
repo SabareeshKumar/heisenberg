@@ -13,6 +13,7 @@ type boardMove struct {
 	castlingFrom int
 	castlingTo   int
 	captured     *piece
+	PromotedPc   int
 }
 
 func (m boardMove) toUserMove() (UserMove, error) {

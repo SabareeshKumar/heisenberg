@@ -28,6 +28,7 @@ func toggleTurn() bool {
 }
 
 func play() bool {
+	app.PrintBoard()
 	if myTurn {
 		fmt.Print("Thinking...")
 		move, err := app.MyMove()
@@ -46,7 +47,34 @@ func play() bool {
 	}
 	move := app.UserMove{input, ""}
 	fmt.Scan(&move.To)
-	err := app.MakeMove(move)
+	mv, err := move.ToBoardMove()
+	if err != nil {
+		fmt.Println(err)
+		return true
+	}
+	if app.IsPromotion(mv) {
+		for {
+			fmt.Println("Please choose a piece type to promote to:")
+			fmt.Println("1. Queen")
+			fmt.Println("2. Rook")
+			fmt.Println("3. Bishop")
+			fmt.Println("4. Knight")
+			fmt.Scan(&mv.PromotedPc)
+			found := true
+			switch mv.PromotedPc {
+			case 1, 2, 3, 4:
+				break
+			default:
+				found = false
+			}
+			if found {
+				// Convert to corresponding piece ID's
+				mv.PromotedPc += 1
+				break
+			}
+		}
+	}
+	err = app.MakeMove(mv)
 	if err != nil {
 		fmt.Println(err)
 		return true

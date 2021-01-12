@@ -2,7 +2,9 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"math"
+	"strings"
 )
 
 // InProgress denotes if game is in progress
@@ -57,11 +59,7 @@ func InitGame(colorChoice int) {
 }
 
 // MakeMove verifies if the user move if valid
-func MakeMove(move UserMove) error {
-	uMove, err := move.toBoardMove()
-	if err != nil {
-		return err
-	}
+func MakeMove(uMove boardMove) error {
 	piece := game.board.pieces[uMove.From]
 	if piece.color == game.myColor {
 		return errors.New("Cannot move opponent piece")
@@ -189,4 +187,56 @@ func GameStatus(myTurn bool) int {
 		return Lost
 	}
 	return Stalemate
+}
+
+// IsPromotion tells whether given move corresponds to pawn promotion
+func IsPromotion(mv boardMove) bool {
+	piece := game.board.pieces[mv.From]
+	if piece == nil || piece.id != pawn {
+		return false
+	}
+	rank, _ := getRankFile(mv.From)
+	if piece.color == white && rank == 7 {
+		return true
+	}
+	if piece.color == black && rank == 2 {
+		return true
+	}
+	return false
+}
+
+// PrintBoard prints entire board state. Useful for testing.
+func PrintBoard() {
+	names := make([]string, 0)
+	lines := make([]string, 0)
+	for i, pc := range game.board.pieces {
+		if pc == nil {
+			names = append(names, "-")
+		} else {
+			switch pc.id {
+			case king:
+				names = append(names, "K")
+			case queen:
+				names = append(names, "Q")
+			case rook:
+				names = append(names, "R")
+			case bishop:
+				names = append(names, "B")
+			case knight:
+				names = append(names, "N")
+			case pawn:
+				names = append(names, "P")
+			}
+		}
+		if (i+1)%8 == 0 {
+			nameStr := strings.Join(names, " ")
+			lines = append(lines, "| "+nameStr+" |")
+			names = make([]string, 0)
+		}
+	}
+	fmt.Println("___________________")
+	for i := len(lines) - 1; i >= 0; i-- {
+		fmt.Println(lines[i])
+	}
+	fmt.Println("___________________")
 }
