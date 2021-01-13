@@ -20,7 +20,7 @@ func search(
 			board.alterPosition(move)
 			_, score := search(!myTurn, maxScore, depth+1)
 			board.undoMove(move)
-			if score <= maxScore {
+			if score < maxScore {
 				continue
 			}
 			maxScore = score
@@ -39,7 +39,7 @@ func search(
 		board.alterPosition(move)
 		_, score := search(!myTurn, minScore, depth+1)
 		board.undoMove(move)
-		if score >= minScore {
+		if score > minScore {
 			continue
 		}
 		minScore = score

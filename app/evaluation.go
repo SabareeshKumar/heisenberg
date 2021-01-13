@@ -38,10 +38,14 @@ func pawnStructure(myTurn bool) (isolated, doubled, blocked int) {
 			blocked += 1
 		}
 	}
-	for _, count := range columns {
-		if count == 1 {
-			isolated += 1
+	for i, count := range columns {
+		if i > 0 && columns[i-1] >= 1 {
+			continue
 		}
+		if i < 7 && columns[i+1] >= 1 {
+			continue
+		}
+		isolated += count
 	}
 	return
 }

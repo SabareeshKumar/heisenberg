@@ -24,13 +24,17 @@ func (m UserMove) ToBoardMove() (boardMove, error) {
 	if err != nil {
 		return boardMove{}, err
 	}
+	pieces := game.board.pieces
+	piece := pieces[fromIndex]
+	if piece == nil {
+		err := fmt.Sprintf("Invalid move: No piece found at %s", m.From)
+		return boardMove{}, errors.New(err)
+	}
 	toIndex, err := toIndex(m.To)
 	if err != nil {
 		return boardMove{}, err
-	}
-	pieces := game.board.pieces
-	piece := pieces[fromIndex]
-	if piece.id != king || int(math.Abs(float64(toIndex-fromIndex))) == 1 {
+	}	
+	if piece.id != king || int(math.Abs(float64(toIndex-fromIndex))) != 2 {
 		bm := boardMove{
 			From:         fromIndex,
 			To:           toIndex,
