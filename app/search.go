@@ -2,7 +2,25 @@ package app
 
 import (
 	"math"
+	"sort"
 )
+
+type sortInt []boardMove
+
+func (bm sortInt) Len() int {
+	return len(bm)
+}
+
+func (bm sortInt) Less(i, j int) bool {
+	if bm[i].From != bm[j].From {
+		return bm[i].From < bm[j].From
+	}
+	return bm[i].To < bm[j].To
+}
+
+func (bm sortInt) Swap(i, j int) {
+	bm[i], bm[j] = bm[j], bm[i]
+}
 
 func search(
 	myTurn bool, bestParentScore float32, depth int) (boardMove, float32) {
@@ -67,5 +85,7 @@ func generateMoves(myTurn bool) []boardMove {
 			moves = append(moves, piece.moveGenerator(piece)...)
 		}
 	}
+	// TODO: come up with some meaningful sorting
+	sort.Sort(sortInt(moves))
 	return moves
 }

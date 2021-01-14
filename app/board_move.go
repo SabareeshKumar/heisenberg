@@ -16,6 +16,10 @@ type boardMove struct {
 	PromotedPc   int
 }
 
+func (m boardMove) String() string {
+	return fmt.Sprintf("%d => %d", m.From, m.To)
+}
+
 func (m boardMove) toUserMove() (UserMove, error) {
 	fromCoord, err := toCoordinates(m.From)
 	if err != nil {
