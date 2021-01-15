@@ -8,8 +8,16 @@ import (
 )
 
 type boardMove struct {
-	From int
-	To   int
+	From         int
+	To           int
+	castlingFrom int
+	castlingTo   int
+	captured     *piece
+	PromotedPc   int
+}
+
+func (m boardMove) String() string {
+	return fmt.Sprintf("%d => %d", m.From, m.To)
 }
 
 func (m boardMove) toUserMove() (UserMove, error) {

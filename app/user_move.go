@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -17,16 +18,48 @@ func (m UserMove) String() string {
 	return fmt.Sprintf("%s -> %s", m.From, m.To)
 }
 
-func (m UserMove) toBoardMove() (boardMove, error) {
+// ToBoardMove converts move coordinates like e2 to board indices like 12.
+func (m UserMove) ToBoardMove() (boardMove, error) {
 	fromIndex, err := toIndex(m.From)
 	if err != nil {
 		return boardMove{}, err
 	}
+	pieces := game.board.pieces
+	piece := pieces[fromIndex]
+	if piece == nil {
+		err := fmt.Sprintf("Invalid move: No piece found at %s", m.From)
+		return boardMove{}, errors.New(err)
+	}
 	toIndex, err := toIndex(m.To)
 	if err != nil {
 		return boardMove{}, err
+	}	
+	if piece.id != king || int(math.Abs(float64(toIndex-fromIndex))) != 2 {
+		bm := boardMove{
+			From:         fromIndex,
+			To:           toIndex,
+			castlingFrom: -1,
+			castlingTo:   -1,
+			captured:     pieces[toIndex],
+			PromotedPc:   -1,
+		}
+		return bm, nil
 	}
-	return boardMove{fromIndex, toIndex}, nil
+	bm := boardMove{}
+	bm.From = fromIndex
+	bm.To = toIndex
+	bm.captured = nil
+	if m.To > m.From {
+		// king side castling
+		bm.castlingFrom = fromIndex + 3
+		bm.castlingTo = toIndex - 1
+	} else {
+		// queen side castling
+		bm.castlingFrom = fromIndex - 4
+		bm.castlingTo = toIndex + 1
+	}
+	bm.PromotedPc = -1
+	return bm, nil
 }
 
 // Given a move coordinate like 'e4', this method will find the board index
