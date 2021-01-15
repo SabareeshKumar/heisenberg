@@ -29,16 +29,15 @@ func pawnStructure(myTurn bool) (isolated, doubled, blocked int) {
 			continue
 		}
 		blockedPiece := pieces[blockedPos]
-		if blockedPiece == nil {
-			continue
-		}
-		if blockedPiece.color == piece.color {
-			doubled += 1
-		} else {
+		if blockedPiece != nil && blockedPiece.color != piece.color {
 			blocked += 1
 		}
 	}
 	for i, count := range columns {
+		// If there are n pawns in a file, n-1 pawns are doubled
+		if count > 1 {
+			doubled += count - 1
+		}
 		if i > 0 && columns[i-1] >= 1 {
 			continue
 		}
