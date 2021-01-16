@@ -5,7 +5,7 @@ type piece struct {
 	name          string
 	color         int
 	position      uint // position in powers of 2
-	moveGenerator func(*piece) []boardMove
+	moveGenerator func(*piece) ([]boardMove, uint)
 	captured      bool
 	moveCount     int // Number of times piece has moved
 	enpassantMove int // First move of pawn
@@ -14,7 +14,7 @@ type piece struct {
 
 type pieceMeta struct {
 	name          string
-	moveGenerator func(*piece) []boardMove
+	moveGenerator func(*piece) ([]boardMove, uint)
 }
 
 var weights = map[int]int{

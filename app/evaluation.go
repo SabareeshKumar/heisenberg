@@ -62,7 +62,8 @@ func legalMoves(myTurn bool) int {
 			if piece.captured {
 				continue
 			}
-			for _, move := range piece.moveGenerator(piece) {
+			moves, _ := piece.moveGenerator(piece)
+			for _, move := range moves {
 				if isMoveLegal(move) {
 					moveCount += 1
 				}

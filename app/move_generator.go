@@ -16,7 +16,9 @@ func getRankFile(boardIndex int) (int, int) {
 }
 
 func newBoardMove(
-	from, to, castlingFrom, castlingTo, promotedPc int) boardMove {
+	from, to, castlingFrom, castlingTo, promotedPc int,
+	attacks *uint) boardMove {
+	*attacks |= 1 << to
 	return boardMove{
 		From:         from,
 		To:           to,
@@ -61,60 +63,66 @@ func canCastle(kingFrom, kingTo int) bool {
 
 }
 
-func kingMoves(piece *piece) []boardMove {
+func kingMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pos := int(math.Log2(float64(piece.position)))
 	rank, file := getRankFile(pos)
 	if file >= 2 { // Left
-		moves = append(moves, newBoardMove(pos, pos-1, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-1, -1, -1, -1, &attacks))
 	}
 	if file <= 7 { // Right
-		moves = append(moves, newBoardMove(pos, pos+1, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+1, -1, -1, -1, &attacks))
 	}
 	if rank <= 7 { // Up
-		moves = append(moves, newBoardMove(pos, pos+8, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+8, -1, -1, -1, &attacks))
 	}
 	if rank >= 2 { // Down
-		moves = append(moves, newBoardMove(pos, pos-8, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-8, -1, -1, -1, &attacks))
 	}
 	if file >= 2 && rank <= 7 { // Upper diagonal left
-		moves = append(moves, newBoardMove(pos, pos+7, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+7, -1, -1, -1, &attacks))
 	}
 	if file <= 7 && rank <= 7 { // Upper diagonal right
-		moves = append(moves, newBoardMove(pos, pos+9, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+9, -1, -1, -1, &attacks))
 	}
 	if file >= 2 && rank >= 2 { // Lower diagonal left
-		moves = append(moves, newBoardMove(pos, pos-9, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-9, -1, -1, -1, &attacks))
 	}
 	if file <= 7 && rank >= 2 { // Lower diagonal right
-		moves = append(moves, newBoardMove(pos, pos-7, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-7, -1, -1, -1, &attacks))
 	}
 	if piece.moveCount > 0 {
-		return moves
+		return moves, attacks
 	}
 	// Check king side castling
 	if canCastle(pos, pos+2) {
-		moves = append(moves, newBoardMove(pos, pos+2, pos+3, pos+1, -1))
+		moves = append(
+			moves, newBoardMove(pos, pos+2, pos+3, pos+1, -1, &attacks))
 	}
 	// Check queen side castling
 	if canCastle(pos, pos-2) {
-		moves = append(moves, newBoardMove(pos, pos-2, pos-4, pos-1, -1))
+		moves = append(
+			moves, newBoardMove(pos, pos-2, pos-4, pos-1, -1, &attacks))
 	}
-	return moves
+	return moves, attacks
 }
 
-func queenMoves(piece *piece) []boardMove {
-	return append(rookMoves(piece), bishopMoves(piece)...)
+func queenMoves(piece *piece) ([]boardMove, uint) {
+	rmoves, rattacks := rookMoves(piece)
+	bmoves, battacks := bishopMoves(piece)
+	return append(rmoves, bmoves...), rattacks | battacks
 }
 
-func rookMoves(piece *piece) []boardMove {
+func rookMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pos := int(math.Log2(float64(piece.position)))
 	rank, file := getRankFile(pos)
 	pieces := game.board.pieces
 	// Traverse file upwards until obstructed
 	for p, r := pos+8, rank+1; r <= 8; {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
@@ -123,7 +131,7 @@ func rookMoves(piece *piece) []boardMove {
 	}
 	// Traverse file downwards until obstructed
 	for p, r := pos-8, rank-1; r >= 1; {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
@@ -132,7 +140,7 @@ func rookMoves(piece *piece) []boardMove {
 	}
 	// Traverse rank left until obstructed
 	for p, f := pos-1, file-1; f >= 1; {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
@@ -141,25 +149,26 @@ func rookMoves(piece *piece) []boardMove {
 	}
 	// Traverse rank right until obstructed
 	for p, f := pos+1, file+1; f <= 8; {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
 		p += 1
 		f += 1
 	}
-	return moves
+	return moves, attacks
 }
 
-func bishopMoves(piece *piece) []boardMove {
+func bishopMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pos := int(math.Log2(float64(piece.position)))
 	rank, file := getRankFile(pos)
 	pieces := game.board.pieces
 	// Traverse top right diagonal until obstructed
 	p, f, r := pos+8+1, file+1, rank+1
 	for f <= 8 && r <= 8 {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
@@ -170,7 +179,7 @@ func bishopMoves(piece *piece) []boardMove {
 	// Traverse bottom right diagonal until obstructed
 	p, f, r = pos-8+1, file+1, rank-1
 	for f <= 8 && r >= 1 {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
@@ -181,7 +190,7 @@ func bishopMoves(piece *piece) []boardMove {
 	// Traverse bottom left diagonal until obstructed
 	p, f, r = pos-8-1, file-1, rank-1
 	for f >= 1 && r >= 1 {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
@@ -192,7 +201,7 @@ func bishopMoves(piece *piece) []boardMove {
 	// Traverse top left diagonal until obstructed
 	p, f, r = pos+8-1, file-1, rank+1
 	for f >= 1 && r <= 8 {
-		moves = append(moves, newBoardMove(pos, p, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, p, -1, -1, -1, &attacks))
 		if pieces[p] != nil {
 			break
 		}
@@ -200,165 +209,180 @@ func bishopMoves(piece *piece) []boardMove {
 		f -= 1
 		r += 1
 	}
-	return moves
+	return moves, attacks
 }
 
-func knightMoves(piece *piece) []boardMove {
+func knightMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pos := int(math.Log2(float64(piece.position)))
 	rank, file := getRankFile(pos)
 	// Clock wise moves from top right
 	if file <= 7 && rank <= 6 {
-		moves = append(moves, newBoardMove(pos, pos+8+9, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+8+9, -1, -1, -1, &attacks))
 	}
 	if file <= 6 && rank <= 7 {
-		moves = append(moves, newBoardMove(pos, pos+8+2, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+8+2, -1, -1, -1, &attacks))
 	}
 	if file <= 6 && rank >= 2 {
-		moves = append(moves, newBoardMove(pos, pos-6, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-6, -1, -1, -1, &attacks))
 	}
 	if file <= 7 && rank >= 3 {
-		moves = append(moves, newBoardMove(pos, pos-8-7, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-8-7, -1, -1, -1, &attacks))
 	}
 	if file >= 2 && rank >= 3 {
-		moves = append(moves, newBoardMove(pos, pos-8-9, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-8-9, -1, -1, -1, &attacks))
 	}
 	if file >= 3 && rank >= 2 {
-		moves = append(moves, newBoardMove(pos, pos-8-2, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-8-2, -1, -1, -1, &attacks))
 	}
 	if file >= 3 && rank <= 7 {
-		moves = append(moves, newBoardMove(pos, pos+6, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+6, -1, -1, -1, &attacks))
 	}
 	if file >= 2 && rank <= 6 {
-		moves = append(moves, newBoardMove(pos, pos+8+7, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+8+7, -1, -1, -1, &attacks))
 	}
-	return moves
+	return moves, attacks
 }
 
-func whitePromotionMoves(piece *piece, file, pos int) []boardMove {
+func whitePromotionMoves(piece *piece, file, pos int) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pieces := game.board.pieces
 	if pieces[pos+8] == nil { // Up
 		for _, promPiece := range promotablePieces {
 			moves = append(
-				moves, newBoardMove(pos, pos+8, -1, -1, promPiece))
+				moves, newBoardMove(pos, pos+8, -1, -1, promPiece, &attacks))
 		}
 	}
 	if file >= 2 && pieces[pos+7] != nil { // Upper diagonal left
 		for _, promPiece := range promotablePieces {
 			moves = append(
-				moves, newBoardMove(pos, pos+7, -1, -1, promPiece))
+				moves, newBoardMove(pos, pos+7, -1, -1, promPiece, &attacks))
 		}
 	}
 	if file <= 7 && pieces[pos+9] != nil { // Upper diagonal right
 		for _, promPiece := range promotablePieces {
 			moves = append(
-				moves, newBoardMove(pos, pos+9, -1, -1, promPiece))
+				moves, newBoardMove(pos, pos+9, -1, -1, promPiece, &attacks))
 		}
 	}
-	return moves
+	return moves, attacks
 }
 
-func whitePawnMoves(piece *piece) []boardMove {
+func whitePawnMoves(piece *piece) ([]boardMove, uint) {
 	pos := int(math.Log2(float64(piece.position)))
 	rank, file := getRankFile(pos)
 	if rank == 7 {
 		return whitePromotionMoves(piece, file, pos)
 	}
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pieces := game.board.pieces
 	if rank <= 7 && pieces[pos+8] == nil { // Up
-		moves = append(moves, newBoardMove(pos, pos+8, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos+8, -1, -1, -1, &attacks))
 		if rank == 2 && pieces[pos+16] == nil { // Up twice
-			moves = append(moves, newBoardMove(pos, pos+16, -1, -1, -1))
+			moves = append(
+				moves, newBoardMove(pos, pos+16, -1, -1, -1, &attacks))
 		}
 	}
 	if file >= 2 && rank < 8 {
 		// Upper diagonal left
 		if pieces[pos+7] != nil {
-			moves = append(moves, newBoardMove(pos, pos+7, -1, -1, -1))
+			moves = append(
+				moves, newBoardMove(pos, pos+7, -1, -1, -1, &attacks))
 		} else {
 			sidePc := pieces[pos-1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(moves, newBoardMove(pos, pos+7, -1, -1, -1))
+				moves = append(
+					moves, newBoardMove(pos, pos+7, -1, -1, -1, &attacks))
 			}
 		}
 	}
 	if file <= 7 && rank < 8 {
 		// Upper diagonal right
 		if pieces[pos+9] != nil {
-			moves = append(moves, newBoardMove(pos, pos+9, -1, -1, -1))
+			moves = append(
+				moves, newBoardMove(pos, pos+9, -1, -1, -1, &attacks))
 		} else {
 			sidePc := pieces[pos+1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(moves, newBoardMove(pos, pos+9, -1, -1, -1))
+				moves = append(
+					moves, newBoardMove(pos, pos+9, -1, -1, -1, &attacks))
 			}
 		}
 	}
-	return moves
+	return moves, attacks
 }
 
-func blackPromotionMoves(piece *piece, file, pos int) []boardMove {
+func blackPromotionMoves(piece *piece, file, pos int) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pieces := game.board.pieces
 	// Color is black so we need to move reverse in terms of board numbering
 	if pieces[pos-8] == nil { // Down
 		for _, promPiece := range promotablePieces {
 			moves = append(
-				moves, newBoardMove(pos, pos-8, -1, -1, promPiece))
+				moves, newBoardMove(pos, pos-8, -1, -1, promPiece, &attacks))
 		}
 	}
 	if file >= 2 && pieces[pos-9] != nil { // Lower diagonal left
 		for _, promPiece := range promotablePieces {
 			moves = append(
-				moves, newBoardMove(pos, pos-9, -1, -1, promPiece))
+				moves, newBoardMove(pos, pos-9, -1, -1, promPiece, &attacks))
 		}
 	}
 	if file <= 7 && pieces[pos-7] != nil { // Lower diagonal right
 		for _, promPiece := range promotablePieces {
 			moves = append(
-				moves, newBoardMove(pos, pos-7, -1, -1, promPiece))
+				moves, newBoardMove(pos, pos-7, -1, -1, promPiece, &attacks))
 		}
 	}
-	return moves
+	return moves, attacks
 }
 
-func blackPawnMoves(piece *piece) []boardMove {
+func blackPawnMoves(piece *piece) ([]boardMove, uint) {
 	pos := int(math.Log2(float64(piece.position)))
 	rank, file := getRankFile(pos)
 	if rank == 2 {
 		return blackPromotionMoves(piece, file, pos)
 	}
 	moves := make([]boardMove, 0)
+	var attacks uint
 	pieces := game.board.pieces
 	// Color is black so we need to move reverse in terms of board numbering
 	if rank >= 2 && pieces[pos-8] == nil { // Down
-		moves = append(moves, newBoardMove(pos, pos-8, -1, -1, -1))
+		moves = append(moves, newBoardMove(pos, pos-8, -1, -1, -1, &attacks))
 		if rank == 7 && pieces[pos-16] == nil { // Down twice
-			moves = append(moves, newBoardMove(pos, pos-16, -1, -1, -1))
+			moves = append(
+				moves, newBoardMove(pos, pos-16, -1, -1, -1, &attacks))
 		}
 	}
 	if file >= 2 && rank >= 2 {
 		// Lower diagonal left
 		if pieces[pos-9] != nil {
-			moves = append(moves, newBoardMove(pos, pos-9, -1, -1, -1))
+			moves = append(
+				moves, newBoardMove(pos, pos-9, -1, -1, -1, &attacks))
 		} else {
 			sidePc := pieces[pos-1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(moves, newBoardMove(pos, pos-9, -1, -1, -1))
+				moves = append(
+					moves, newBoardMove(pos, pos-9, -1, -1, -1, &attacks))
 			}
 		}
 	}
 	if file <= 7 && rank >= 2 {
 		// Lower diagonal right
 		if pieces[pos-7] != nil {
-			moves = append(moves, newBoardMove(pos, pos-7, -1, -1, -1))
+			moves = append(
+				moves, newBoardMove(pos, pos-7, -1, -1, -1, &attacks))
 		} else {
 			sidePc := pieces[pos+1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(moves, newBoardMove(pos, pos-7, -1, -1, -1))
+				moves = append(
+					moves, newBoardMove(pos, pos-7, -1, -1, -1, &attacks))
 			}
 		}
 	}
-	return moves
+	return moves, attacks
 }

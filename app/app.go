@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var evaluationsPerSearch = 0
+
 // InProgress denotes if game is in progress
 const InProgress = 0
 
@@ -60,12 +62,14 @@ func InitGame(colorChoice int) {
 
 // MakeMove verifies if the user move if valid
 func MakeMove(uMove boardMove) error {
-	piece := game.board.pieces[uMove.From]
+	board := game.board
+	piece := board.pieces[uMove.From]
 	if piece.color == game.myColor {
 		return errors.New("Cannot move opponent piece")
 	}
 	valid := false
-	for _, move := range piece.moveGenerator(piece) {
+	moves, _ := piece.moveGenerator(piece)
+	for _, move := range moves {
 		if uMove == move {
 			valid = true
 			break
@@ -77,12 +81,14 @@ func MakeMove(uMove boardMove) error {
 	if !isMoveLegal(uMove) {
 		return errors.New("Illegal move")
 	}
-	return game.board.alterPosition(uMove)
+	return board.alterPosition(uMove)
 }
 
 // MyMove computes a move for the engine
 func MyMove() (UserMove, error) {
-	myMov, _ := search(true, float32(math.MaxInt32), 1)
+	evaluationsPerSearch = 0
+	myMov, _ := search(true, float32(math.MaxInt32), 1, []boardMove{})
+	fmt.Printf("Evaluated %d board states\n", evaluationsPerSearch)
 	err := game.board.alterPosition(myMov)
 	if err != nil {
 		return UserMove{}, err
@@ -132,13 +138,45 @@ func isMoveLegal(mv boardMove) bool {
 	return !inCheck(kingPc, otherPieces)
 }
 
+func isMoveValid(mv boardMove) bool {
+	board := game.board
+	pc := board.pieces[mv.From]
+	if pc.captured {
+		// Cannot move dead piece
+		return false
+	}
+	capturedPc := board.pieces[mv.To]
+	if capturedPc != nil {
+		if pc.color == capturedPc.color {
+			// Cannot capture own piece
+			return false
+		}
+		if capturedPc.id == king {
+			// Cannot capture king
+			return false
+		}
+	}
+	var otherPieces map[int][]*piece
+	if pc.color == game.myColor {
+		otherPieces = game.otherPieces
+	} else {
+		otherPieces = game.myPieces
+	}
+	if mv.castlingFrom > 0 {
+		// Check if castling is valid. It inherently checks if move
+		// results in check.
+		return isCastlingValid(mv, otherPieces)
+	}
+	return true
+}
+
 func isCastlingValid(bm boardMove, otherPieces map[int][]*piece) bool {
 	for _, pieces := range otherPieces {
 		for _, piece := range pieces {
 			if piece.captured {
 				continue
 			}
-			moves := piece.moveGenerator(piece)
+			moves, _ := piece.moveGenerator(piece)
 			for _, move := range moves {
 				if move.To == bm.From ||
 					move.To == bm.To ||
@@ -151,6 +189,16 @@ func isCastlingValid(bm boardMove, otherPieces map[int][]*piece) bool {
 	return true
 }
 
+func inCheckSimple(myTurn bool, attacks uint) bool {
+	var kingPc *piece
+	if myTurn {
+		kingPc = game.myPieces[king][0]
+	} else {
+		kingPc = game.otherPieces[king][0]
+	}
+	return (kingPc.position & attacks) != 0
+}
+
 func inCheck(kingPc *piece, otherPieces map[int][]*piece) bool {
 	brdIndex := int(math.Log2(float64(kingPc.position)))
 	for _, pieces := range otherPieces {
@@ -158,7 +206,7 @@ func inCheck(kingPc *piece, otherPieces map[int][]*piece) bool {
 			if piece.captured {
 				continue
 			}
-			moves := piece.moveGenerator(piece)
+			moves, _ := piece.moveGenerator(piece)
 			for _, move := range moves {
 				if move.To == brdIndex {
 					return true
@@ -171,17 +219,14 @@ func inCheck(kingPc *piece, otherPieces map[int][]*piece) bool {
 
 // GameStatus returns status of the current game
 func GameStatus(myTurn bool) int {
+	if legalMoves(myTurn) > 0 {
+		return InProgress
+	}
 	if myTurn {
-		if legalMoves(myTurn) > 0 {
-			return InProgress
-		}
 		if inCheck(game.myPieces[king][0], game.otherPieces) {
 			return Win
 		}
 		return Stalemate
-	}
-	if legalMoves(myTurn) > 0 {
-		return InProgress
 	}
 	if inCheck(game.otherPieces[king][0], game.myPieces) {
 		return Lost

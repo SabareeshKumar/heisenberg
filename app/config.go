@@ -1,3 +1,3 @@
 package app
 
-const maxDepth = 2
+const maxDepth = 4
