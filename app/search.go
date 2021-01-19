@@ -24,8 +24,16 @@ func (bm sortInt) Swap(i, j int) {
 
 func search(
 	myTurn bool, bestParentScore float32, depth int,
-	moves []boardMove) (boardMove, float32) {
+	moves []boardMove, lastMove *boardMove) (boardMove, float32) {
+	hResult := hashedResult(myTurn, maxDepth-depth+1, lastMove)
+	if hResult != nil {
+		tableHits += 1
+		return hResult.bestMove, hResult.score
+	}
 	if depth > maxDepth {
+		evaluationsPerSearch += 1
+		move, score := boardMove{}, eval()
+		hashResult(myTurn, 0, score, move, lastMove)
 		return boardMove{}, eval()
 	}
 	var bestMove boardMove
@@ -35,8 +43,11 @@ func search(
 	}
 	if myTurn {
 		maxScore := float32(math.MinInt32)
-		for _, move := range moves {
+		defer func() {
 			evaluationsPerSearch += 1
+			hashResult(myTurn, maxDepth-depth+1, maxScore, bestMove, lastMove)
+		}()
+		for _, move := range moves {
 			if !isMoveValid(move) {
 				continue
 			}
@@ -46,7 +57,8 @@ func search(
 				board.undoMove(move)
 				continue
 			}
-			_, score := search(!myTurn, maxScore, depth+1, opponentMoves)
+			_, score := search(
+				!myTurn, maxScore, depth+1, opponentMoves, &move)
 			board.undoMove(move)
 			if score < maxScore {
 				continue
@@ -60,8 +72,11 @@ func search(
 		return bestMove, maxScore
 	}
 	minScore := float32(math.MaxInt32)
-	for _, move := range moves {
+	defer func() {
 		evaluationsPerSearch += 1
+		hashResult(myTurn, maxDepth-depth+1, minScore, bestMove, lastMove)
+	}()
+	for _, move := range moves {
 		if !isMoveValid(move) {
 			continue
 		}
@@ -71,7 +86,7 @@ func search(
 			board.undoMove(move)
 			continue
 		}
-		_, score := search(!myTurn, minScore, depth+1, opponentMoves)
+		_, score := search(!myTurn, minScore, depth+1, opponentMoves, &move)
 		board.undoMove(move)
 		if score > minScore {
 			continue

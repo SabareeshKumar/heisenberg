@@ -89,6 +89,6 @@ func eval() float32 {
 	score := float32(game.materialBalance)
 	score -= 0.5 * float32(isolated-_isolated+doubled-_doubled+
 		blocked-_blocked)
-	score += 0.1 * float32(moveCount-_moveCount)
+	// score += 0.1 * float32(moveCount-_moveCount)
 	return score
 }

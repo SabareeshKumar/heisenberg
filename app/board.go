@@ -7,6 +7,7 @@ import (
 
 type boardConfig struct {
 	pieces []*piece
+	hash   int64
 }
 
 func newBoard() *boardConfig {
@@ -33,13 +34,31 @@ func newBoard() *boardConfig {
 	pieces[61] = newBlackPiece(bishop, 1<<61)
 	pieces[62] = newBlackPiece(knight, 1<<62)
 	pieces[63] = newBlackPiece(rook, 1<<63)
-	return &boardConfig{pieces}
+	board := boardConfig{}
+	board.pieces = pieces
+	for i := 0; i <= 15; i++ {
+		board.hash ^= whiteHashKeys[pieces[i].id][i]
+	}
+	for i := 48; i <= 63; i++ {
+		board.hash ^= blackHashKeys[pieces[i].id][i]
+	}
+	return &board
 }
 
 func (brd *boardConfig) alterPosition(bm boardMove) error {
 	pc := brd.pieces[bm.From]
 	if pc == nil {
 		return errors.New("Invalid move")
+	}
+	var keys map[int][]int64
+	if pc.color == white {
+		keys = whiteHashKeys
+		brd.hash ^= whiteHashKeys[pc.id][bm.From]
+		brd.hash ^= whiteHashKeys[pc.id][bm.To]
+	} else {
+		keys = blackHashKeys
+		brd.hash ^= blackHashKeys[pc.id][bm.From]
+		brd.hash ^= blackHashKeys[pc.id][bm.To]
 	}
 	capturedPc := bm.captured
 	if capturedPc != nil {
@@ -48,6 +67,11 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 			game.materialBalance += weights[capturedPc.id]
 		} else {
 			game.materialBalance -= weights[capturedPc.id]
+		}
+		if capturedPc.color == white {
+			brd.hash ^= whiteHashKeys[capturedPc.id][bm.To]
+		} else {
+			brd.hash ^= blackHashKeys[capturedPc.id][bm.To]
 		}
 	}
 	brd.pieces[bm.From] = nil
@@ -61,6 +85,8 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 		brd.pieces[bm.castlingTo] = rookPc
 		rookPc.position = 1 << bm.castlingTo
 		rookPc.moveCount += 1
+		brd.hash ^= keys[rookPc.id][bm.castlingFrom]
+		brd.hash ^= keys[rookPc.id][bm.castlingTo]
 		return nil
 	}
 	if pc.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
@@ -79,6 +105,8 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	brd.pieces[bm.To] = newPc
 	newPc.promotedBy = pc
 	pc.captured = true
+	brd.hash ^= keys[pc.id][bm.To]
+	brd.hash ^= keys[newPc.id][bm.To]
 	if pc.color == game.myColor {
 		game.materialBalance += weights[bm.PromotedPc]
 		game.materialBalance -= weights[pc.id]
@@ -95,6 +123,16 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	game.moveCount -= 1
 	pc := brd.pieces[bm.To]
 	brd.pieces[bm.From] = pc
+	var keys map[int][]int64
+	if pc.color == white {
+		keys = whiteHashKeys
+		brd.hash ^= whiteHashKeys[pc.id][bm.From]
+		brd.hash ^= whiteHashKeys[pc.id][bm.To]
+	} else {
+		keys = blackHashKeys
+		brd.hash ^= blackHashKeys[pc.id][bm.From]
+		brd.hash ^= blackHashKeys[pc.id][bm.To]
+	}
 	capturedPc := bm.captured
 	if capturedPc != nil {
 		capturedPc.captured = false
@@ -102,6 +140,11 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 			game.materialBalance -= weights[capturedPc.id]
 		} else {
 			game.materialBalance += weights[capturedPc.id]
+		}
+		if capturedPc.color == white {
+			brd.hash ^= whiteHashKeys[capturedPc.id][bm.To]
+		} else {
+			brd.hash ^= blackHashKeys[capturedPc.id][bm.To]
 		}
 	}
 	brd.pieces[bm.To] = capturedPc
@@ -113,6 +156,8 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 		brd.pieces[bm.castlingTo] = nil
 		rookPc.position = 1 << bm.castlingFrom
 		rookPc.moveCount -= 1
+		brd.hash ^= keys[rookPc.id][bm.castlingFrom]
+		brd.hash ^= keys[rookPc.id][bm.castlingTo]
 		return
 	}
 	if pc.id == pawn && int(math.Abs(float64(bm.To-bm.From))) == 16 {
@@ -121,13 +166,15 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	}
 	pwn := pc.promotedBy
 	// Check if move to be undone is a promotion move
-	if pwn == nil || pc.moveCount >= 0 {
+	if pwn == nil || pc.moveCount > 0 {
 		return
 	}
 	brd.pieces[bm.From] = pwn
 	pwn.position = pc.position
 	pwn.moveCount -= 1
 	pwn.captured = false
+	brd.hash ^= keys[pc.id][bm.From]
+	brd.hash ^= keys[pwn.id][bm.From]
 	if pwn.color == game.myColor {
 		game.materialBalance += weights[pwn.id]
 		game.materialBalance -= weights[pc.id]

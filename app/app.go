@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 var evaluationsPerSearch = 0
+var tableHits = 0
 
 // InProgress denotes if game is in progress
 const InProgress = 0
@@ -29,9 +32,29 @@ type GameState struct {
 	otherPieces     map[int][]*piece
 	materialBalance int
 	moveCount       int
+	tpnTbl          map[int64]tpnMeta // Transposition table
 }
 
 var game GameState
+
+// Hash keys for each white piece and square
+var blackHashKeys map[int][]int64
+
+// Hash keys for each black piece and square
+var whiteHashKeys map[int][]int64
+
+// Hash keys for each turn
+var turnHash map[bool]int64
+
+// Hash keys for each file. Will be used to generate hashes for enpassant
+// squares
+var fileHash map[int]int64
+
+// Hash keys for king & queen side castling rights of computer
+var myCastlingHash []int64
+
+// Hash keys for king & queen side castling rights of opponent
+var otherCastlingHash []int64
 
 // InitGame sets up a new game.
 func InitGame(colorChoice int) {
@@ -41,6 +64,7 @@ func InitGame(colorChoice int) {
 	game = GameState{}
 	game.board = board
 	game.moveCount = 0
+	game.tpnTbl = make(map[int64]tpnMeta, tpnTblSize)
 	for i := 0; i <= 15; i++ {
 		piece := board.pieces[i]
 		whitePieces[piece.id] = append(whitePieces[piece.id], piece)
@@ -87,8 +111,11 @@ func MakeMove(uMove boardMove) error {
 // MyMove computes a move for the engine
 func MyMove() (UserMove, error) {
 	evaluationsPerSearch = 0
-	myMov, _ := search(true, float32(math.MaxInt32), 1, []boardMove{})
-	fmt.Printf("Evaluated %d board states\n", evaluationsPerSearch)
+	tableHits = 0
+	myMov, _ := search(true, float32(math.MaxInt32), 1, []boardMove{}, nil)
+	fmt.Printf("Evaluated %d board states:\n", evaluationsPerSearch)
+	fmt.Println("Number of table hits:", tableHits)
+	fmt.Println("Hash table length:", len(game.tpnTbl))
 	err := game.board.alterPosition(myMov)
 	if err != nil {
 		return UserMove{}, err
@@ -284,4 +311,89 @@ func PrintBoard() {
 		fmt.Println(lines[i])
 	}
 	fmt.Println("___________________")
+}
+
+// CreateHashKeys creates all hash keys needed throughout the game.
+func CreateHashKeys() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	encounteredKeys := make(map[int64]bool)
+	// Create keys for white pieces
+	whiteHashKeys = make(map[int][]int64)
+	for pieceId := range whiteMeta {
+		squares := make([]int64, 64)
+		for i := 0; i < 64; {
+			newKey := r.Int63()
+			if encounteredKeys[newKey] {
+				continue
+			}
+			encounteredKeys[newKey] = true
+			squares[i] = newKey
+			i += 1
+		}
+		whiteHashKeys[pieceId] = squares
+	}
+	// Create keys for black pieces
+	blackHashKeys = make(map[int][]int64)
+	for pieceId := range blackMeta {
+		squares := make([]int64, 64)
+		for i := 0; i < 64; {
+			newKey := r.Int63()
+			if encounteredKeys[newKey] {
+				continue
+			}
+			encounteredKeys[newKey] = true
+			squares[i] = newKey
+			i += 1
+		}
+		blackHashKeys[pieceId] = squares
+	}
+	turnHash = make(map[bool]int64)
+	for {
+		myTurnKey := r.Int63()
+		if encounteredKeys[myTurnKey] {
+			continue
+		}
+		encounteredKeys[myTurnKey] = true
+		turnHash[true] = myTurnKey
+		break
+	}
+	for {
+		opponentTurnKey := r.Int63()
+		if encounteredKeys[opponentTurnKey] {
+			continue
+		}
+		encounteredKeys[opponentTurnKey] = true
+		turnHash[false] = opponentTurnKey
+		break
+	}
+	fileHash = make(map[int]int64)
+	for i := 1; i <= 8; {
+		newKey := r.Int63()
+		if encounteredKeys[newKey] {
+			continue
+		}
+		encounteredKeys[newKey] = true
+		fileHash[i] = newKey
+		i += 1
+	}
+	myCastlingHash = make([]int64, 2)
+	for i := 0; i < 2; {
+		newKey := r.Int63()
+		if encounteredKeys[newKey] {
+			continue
+		}
+		encounteredKeys[newKey] = true
+		myCastlingHash[i] = newKey
+		i += 1
+	}
+	otherCastlingHash = make([]int64, 2)
+	for i := 0; i < 2; {
+		newKey := r.Int63()
+		if encounteredKeys[newKey] {
+			continue
+		}
+		encounteredKeys[newKey] = true
+		otherCastlingHash[i] = newKey
+		i += 1
+	}
 }

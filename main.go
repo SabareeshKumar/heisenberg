@@ -84,6 +84,7 @@ func play() bool {
 
 func main() {
 	var colorChoice int
+	app.CreateHashKeys()
 	for {
 		fmt.Println("\nChoose a color:\n1. Black\n2. White")
 		fmt.Scanln(&colorChoice)

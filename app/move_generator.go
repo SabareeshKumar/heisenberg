@@ -31,14 +31,14 @@ func newBoardMove(
 
 func canCastle(kingFrom, kingTo int) bool {
 	pieces := game.board.pieces
-	if pieces[kingFrom] == nil || pieces[kingFrom].moveCount > 1 {
+	if pieces[kingFrom] == nil || pieces[kingFrom].moveCount > 0 {
 		// king already moved
 		return false
 	}
 	if kingTo > kingFrom {
 		// king side castling
 		rookPos := kingFrom + 3
-		if pieces[rookPos] == nil || pieces[rookPos].moveCount > 1 {
+		if pieces[rookPos] == nil || pieces[rookPos].moveCount > 0 {
 			// rook moved
 			return false
 		}
@@ -50,7 +50,7 @@ func canCastle(kingFrom, kingTo int) bool {
 	}
 	// queen side castling
 	rookPos := kingFrom - 4
-	if pieces[rookPos] == nil || pieces[rookPos].moveCount > 1 {
+	if pieces[rookPos] == nil || pieces[rookPos].moveCount > 0 {
 		// rook moved
 		return false
 	}
