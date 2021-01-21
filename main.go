@@ -93,7 +93,11 @@ func main() {
 			continue
 		}
 		myTurn = (colorChoice == 1)
-		app.InitGame(colorChoice)
+		err := app.InitGame(colorChoice)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 		for play() {
 		}
 	}

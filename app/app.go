@@ -33,6 +33,7 @@ type GameState struct {
 	materialBalance int
 	moveCount       int
 	tpnTbl          map[int64]tpnMeta // Transposition table
+	lastMove        *boardMove
 }
 
 var game GameState
@@ -57,7 +58,7 @@ var myCastlingHash []int64
 var otherCastlingHash []int64
 
 // InitGame sets up a new game.
-func InitGame(colorChoice int) {
+func InitGame(userColorChoice int) error {
 	whitePieces := make(map[int][]*piece, 16)
 	blackPieces := make(map[int][]*piece, 16)
 	board := newBoard()
@@ -73,15 +74,16 @@ func InitGame(colorChoice int) {
 		piece := board.pieces[i]
 		blackPieces[piece.id] = append(blackPieces[piece.id], piece)
 	}
-	if colorChoice == white {
+	if userColorChoice == white {
 		game.myColor = black
 		game.otherPieces = whitePieces
 		game.myPieces = blackPieces
-		return
+	} else {
+		game.myColor = white
+		game.otherPieces = blackPieces
+		game.myPieces = whitePieces
 	}
-	game.myColor = white
-	game.otherPieces = blackPieces
-	game.myPieces = whitePieces
+	return loadOpeningBook(userColorChoice)
 }
 
 // MakeMove verifies if the user move if valid
@@ -105,6 +107,7 @@ func MakeMove(uMove boardMove) error {
 	if !isMoveLegal(uMove) {
 		return errors.New("Illegal move")
 	}
+	game.lastMove = &uMove
 	return board.alterPosition(uMove)
 }
 
@@ -112,7 +115,8 @@ func MakeMove(uMove boardMove) error {
 func MyMove() (UserMove, error) {
 	evaluationsPerSearch = 0
 	tableHits = 0
-	myMov, _ := search(true, float32(math.MaxInt32), 1, []boardMove{}, nil)
+	myMov, _ := search(
+		true, float32(math.MaxInt32), 1, []boardMove{}, game.lastMove)
 	fmt.Printf("Evaluated %d board states:\n", evaluationsPerSearch)
 	fmt.Println("Number of table hits:", tableHits)
 	fmt.Println("Hash table length:", len(game.tpnTbl))
@@ -124,6 +128,7 @@ func MyMove() (UserMove, error) {
 	if err != nil {
 		return UserMove{}, err
 	}
+	game.lastMove = &myMov
 	return myMoveCoord, nil
 }
 
