@@ -77,14 +77,14 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	brd.pieces[bm.From] = nil
 	brd.pieces[bm.To] = pc
 	pc.position = 1 << bm.To
-	game.moveCount += 1
-	pc.moveCount += 1
+	game.moveCount++
+	pc.moveCount++
 	if bm.castlingFrom != -1 {
 		rookPc := brd.pieces[bm.castlingFrom]
 		brd.pieces[bm.castlingFrom] = nil
 		brd.pieces[bm.castlingTo] = rookPc
 		rookPc.position = 1 << bm.castlingTo
-		rookPc.moveCount += 1
+		rookPc.moveCount++
 		brd.hash ^= keys[rookPc.id][bm.castlingFrom]
 		brd.hash ^= keys[rookPc.id][bm.castlingTo]
 		return nil
@@ -120,7 +120,7 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 }
 
 func (brd *boardConfig) undoMove(bm boardMove) {
-	game.moveCount -= 1
+	game.moveCount--
 	pc := brd.pieces[bm.To]
 	brd.pieces[bm.From] = pc
 	var keys map[int][]int64
@@ -149,13 +149,13 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	}
 	brd.pieces[bm.To] = capturedPc
 	pc.position = 1 << bm.From
-	pc.moveCount -= 1
+	pc.moveCount--
 	if bm.castlingFrom != -1 {
 		rookPc := brd.pieces[bm.castlingTo]
 		brd.pieces[bm.castlingFrom] = rookPc
 		brd.pieces[bm.castlingTo] = nil
 		rookPc.position = 1 << bm.castlingFrom
-		rookPc.moveCount -= 1
+		rookPc.moveCount--
 		brd.hash ^= keys[rookPc.id][bm.castlingFrom]
 		brd.hash ^= keys[rookPc.id][bm.castlingTo]
 		return
@@ -171,7 +171,7 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	}
 	brd.pieces[bm.From] = pwn
 	pwn.position = pc.position
-	pwn.moveCount -= 1
+	pwn.moveCount--
 	pwn.captured = false
 	brd.hash ^= keys[pc.id][bm.From]
 	brd.hash ^= keys[pwn.id][bm.From]

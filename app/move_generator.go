@@ -5,7 +5,7 @@ import (
 )
 
 func getRankFile(boardIndex int) (int, int) {
-	boardIndex += 1
+	boardIndex++
 	rank := int(math.Ceil(float64(boardIndex) / 8.0))
 	file := boardIndex % 8
 	if file == 0 {
@@ -127,7 +127,7 @@ func rookMoves(piece *piece) ([]boardMove, uint) {
 			break
 		}
 		p += 8
-		r += 1
+		r++
 	}
 	// Traverse file downwards until obstructed
 	for p, r := pos-8, rank-1; r >= 1; {
@@ -136,7 +136,7 @@ func rookMoves(piece *piece) ([]boardMove, uint) {
 			break
 		}
 		p -= 8
-		r -= 1
+		r--
 	}
 	// Traverse rank left until obstructed
 	for p, f := pos-1, file-1; f >= 1; {
@@ -144,8 +144,8 @@ func rookMoves(piece *piece) ([]boardMove, uint) {
 		if pieces[p] != nil {
 			break
 		}
-		p -= 1
-		f -= 1
+		p--
+		f--
 	}
 	// Traverse rank right until obstructed
 	for p, f := pos+1, file+1; f <= 8; {
@@ -153,8 +153,8 @@ func rookMoves(piece *piece) ([]boardMove, uint) {
 		if pieces[p] != nil {
 			break
 		}
-		p += 1
-		f += 1
+		p++
+		f++
 	}
 	return moves, attacks
 }
@@ -173,8 +173,8 @@ func bishopMoves(piece *piece) ([]boardMove, uint) {
 			break
 		}
 		p += 8 + 1
-		f += 1
-		r += 1
+		f++
+		r++
 	}
 	// Traverse bottom right diagonal until obstructed
 	p, f, r = pos-8+1, file+1, rank-1
@@ -184,8 +184,8 @@ func bishopMoves(piece *piece) ([]boardMove, uint) {
 			break
 		}
 		p = p - 8 + 1
-		f += 1
-		r -= 1
+		f++
+		r--
 	}
 	// Traverse bottom left diagonal until obstructed
 	p, f, r = pos-8-1, file-1, rank-1
@@ -195,8 +195,8 @@ func bishopMoves(piece *piece) ([]boardMove, uint) {
 			break
 		}
 		p = p - 8 - 1
-		f -= 1
-		r -= 1
+		f--
+		r--
 	}
 	// Traverse top left diagonal until obstructed
 	p, f, r = pos+8-1, file-1, rank+1
@@ -206,8 +206,8 @@ func bishopMoves(piece *piece) ([]boardMove, uint) {
 			break
 		}
 		p += 8 - 1
-		f -= 1
-		r += 1
+		f--
+		r++
 	}
 	return moves, attacks
 }

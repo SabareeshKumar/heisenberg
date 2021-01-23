@@ -37,7 +37,7 @@ func toCoordinates(index int) (string, error) {
 		errMsg := fmt.Sprintf("Invalid index: %d", index)
 		return "", errors.New(errMsg)
 	}
-	index += 1
+	index++
 	rank := int(math.Ceil(float64(index) / 8.0))
 	file := index % 8
 	if file == 0 {

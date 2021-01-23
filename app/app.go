@@ -333,7 +333,7 @@ func CreateHashKeys() {
 			}
 			encounteredKeys[newKey] = true
 			squares[i] = newKey
-			i += 1
+			i++
 		}
 		whiteHashKeys[pieceId] = squares
 	}
@@ -348,7 +348,7 @@ func CreateHashKeys() {
 			}
 			encounteredKeys[newKey] = true
 			squares[i] = newKey
-			i += 1
+			i++
 		}
 		blackHashKeys[pieceId] = squares
 	}
@@ -379,7 +379,7 @@ func CreateHashKeys() {
 		}
 		encounteredKeys[newKey] = true
 		fileHash[i] = newKey
-		i += 1
+		i++
 	}
 	myCastlingHash = make([]int64, 2)
 	for i := 0; i < 2; {
@@ -389,7 +389,7 @@ func CreateHashKeys() {
 		}
 		encounteredKeys[newKey] = true
 		myCastlingHash[i] = newKey
-		i += 1
+		i++
 	}
 	otherCastlingHash = make([]int64, 2)
 	for i := 0; i < 2; {
@@ -399,6 +399,6 @@ func CreateHashKeys() {
 		}
 		encounteredKeys[newKey] = true
 		otherCastlingHash[i] = newKey
-		i += 1
+		i++
 	}
 }

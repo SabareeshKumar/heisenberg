@@ -69,7 +69,7 @@ func play() bool {
 			}
 			if found {
 				// Convert to corresponding piece ID's
-				mv.PromotedPc += 1
+				mv.PromotedPc++
 				break
 			}
 		}

@@ -19,7 +19,7 @@ func pawnStructure(myTurn bool) (isolated, doubled, blocked int) {
 		}
 		brdIndex := int(math.Log2(float64(piece.position)))
 		rank, file := getRankFile(brdIndex)
-		columns[file-1] += 1
+		columns[file-1]++
 		var blockedPos int
 		if piece.color == white && rank < 8 {
 			blockedPos = brdIndex + 8
@@ -30,7 +30,7 @@ func pawnStructure(myTurn bool) (isolated, doubled, blocked int) {
 		}
 		blockedPiece := pieces[blockedPos]
 		if blockedPiece != nil && blockedPiece.color != piece.color {
-			blocked += 1
+			blocked++
 		}
 	}
 	for i, count := range columns {
@@ -65,7 +65,7 @@ func legalMoves(myTurn bool) int {
 			moves, _ := piece.moveGenerator(piece)
 			for _, move := range moves {
 				if isMoveLegal(move) {
-					moveCount += 1
+					moveCount++
 				}
 			}
 		}
