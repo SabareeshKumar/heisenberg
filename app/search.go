@@ -2,7 +2,7 @@ package app
 
 import (
 	"math"
-	"sort"
+	// "sort"
 )
 
 type sortInt []boardMove
@@ -12,10 +12,18 @@ func (bm sortInt) Len() int {
 }
 
 func (bm sortInt) Less(i, j int) bool {
-	if bm[i].From != bm[j].From {
-		return bm[i].From < bm[j].From
+	score1, score2 := float32(-1), float32(-1)
+	if isMoveLegal(bm[i]) {
+		game.board.alterPosition(bm[i])
+		score1 = eval()
+		game.board.undoMove(bm[i])
 	}
-	return bm[i].To < bm[j].To
+	if isMoveLegal(bm[j]) {
+		game.board.alterPosition(bm[j])
+		score1 = eval()
+		game.board.undoMove(bm[j])
+	}
+	return score1 > score2
 }
 
 func (bm sortInt) Swap(i, j int) {
@@ -36,10 +44,10 @@ func search(
 		hashResult(myTurn, 0, score, move, lastMove)
 		return boardMove{}, eval()
 	}
-	var bestMove boardMove
+	var bestMove, bestChildMove boardMove
 	board := game.board
 	if depth == 1 {
-		moves, _ = generateMoves(myTurn)
+		moves, _ = generateMoves(myTurn, bestMove)
 	}
 	if myTurn {
 		maxScore := float32(math.MinInt32)
@@ -52,17 +60,18 @@ func search(
 				continue
 			}
 			board.alterPosition(move)
-			opponentMoves, attacks := generateMoves(!myTurn)
+			opponentMoves, attacks := generateMoves(!myTurn, bestChildMove)
 			if inCheckSimple(myTurn, attacks) {
 				board.undoMove(move)
 				continue
 			}
-			_, score := search(
+			childMv, score := search(
 				!myTurn, maxScore, depth+1, opponentMoves, &move)
 			board.undoMove(move)
 			if score < maxScore {
 				continue
 			}
+			bestChildMove = childMv
 			maxScore = score
 			bestMove = move
 			if maxScore >= bestParentScore {
@@ -81,16 +90,18 @@ func search(
 			continue
 		}
 		board.alterPosition(move)
-		opponentMoves, attacks := generateMoves(!myTurn)
+		opponentMoves, attacks := generateMoves(!myTurn, bestChildMove)
 		if inCheckSimple(myTurn, attacks) {
 			board.undoMove(move)
 			continue
 		}
-		_, score := search(!myTurn, minScore, depth+1, opponentMoves, &move)
+		childMv, score := search(
+			!myTurn, minScore, depth+1, opponentMoves, &move)
 		board.undoMove(move)
 		if score > minScore {
 			continue
 		}
+		bestChildMove = childMv
 		minScore = score
 		bestMove = move
 		if minScore <= bestParentScore {
@@ -100,7 +111,7 @@ func search(
 	return bestMove, minScore
 }
 
-func generateMoves(myTurn bool) ([]boardMove, uint) {
+func generateMoves(myTurn bool, refutationMove boardMove) ([]boardMove, uint) {
 	var pieceMap map[int][]*piece
 	if myTurn {
 		pieceMap = game.myPieces
@@ -109,8 +120,8 @@ func generateMoves(myTurn bool) ([]boardMove, uint) {
 	}
 	moves := make([]boardMove, 0)
 	var attacks uint
-	for _, pieces := range pieceMap {
-		for _, piece := range pieces {
+	for _, pieceId := range []int{queen, rook, knight, bishop, king, pawn} {
+		for _, piece := range pieceMap[pieceId] {
 			if piece.captured {
 				continue
 			}
@@ -119,7 +130,19 @@ func generateMoves(myTurn bool) ([]boardMove, uint) {
 			attacks |= pieceAttacks
 		}
 	}
+	// Refutation move index
+	reftMoveIndex := -1
+	for i, move := range moves {
+		if move == refutationMove {
+			reftMoveIndex = i
+			break
+		}
+	}
+	if reftMoveIndex > 0 {
+		// Place refutation move first so that it triggers a cutoff
+		moves = append([]boardMove{refutationMove}, moves...)
+	}
 	// TODO: come up with some meaningful sorting
-	sort.Sort(sortInt(moves))
+	// sort.Sort(sortInt(moves))
 	return moves, attacks
 }
