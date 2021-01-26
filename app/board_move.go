@@ -20,6 +20,10 @@ func (m boardMove) String() string {
 	return fmt.Sprintf("%d => %d", m.From, m.To)
 }
 
+func (m boardMove) hashKey() int {
+	return m.From*100*100 + m.To
+}
+
 func (m boardMove) toUserMove() (UserMove, error) {
 	fromCoord, err := toCoordinates(m.From)
 	if err != nil {

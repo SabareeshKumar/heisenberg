@@ -44,10 +44,11 @@ func search(
 		hashResult(myTurn, 0, score, move, lastMove)
 		return boardMove{}, eval()
 	}
-	var bestMove, bestChildMove boardMove
+	var bestMove boardMove
+	reftMoves := make(map[int]bool, 0)
 	board := game.board
 	if depth == 1 {
-		moves, _ = generateMoves(myTurn, bestMove)
+		moves, _ = generateMoves(myTurn, reftMoves)
 	}
 	if myTurn {
 		maxScore := float32(math.MinInt32)
@@ -60,18 +61,18 @@ func search(
 				continue
 			}
 			board.alterPosition(move)
-			opponentMoves, attacks := generateMoves(!myTurn, bestChildMove)
+			opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
 			if inCheckSimple(myTurn, attacks) {
 				board.undoMove(move)
 				continue
 			}
 			childMv, score := search(
 				!myTurn, maxScore, depth+1, opponentMoves, &move)
+			reftMoves[childMv.hashKey()] = true
 			board.undoMove(move)
 			if score < maxScore {
 				continue
 			}
-			bestChildMove = childMv
 			maxScore = score
 			bestMove = move
 			if maxScore >= bestParentScore {
@@ -90,18 +91,18 @@ func search(
 			continue
 		}
 		board.alterPosition(move)
-		opponentMoves, attacks := generateMoves(!myTurn, bestChildMove)
+		opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
 		if inCheckSimple(myTurn, attacks) {
 			board.undoMove(move)
 			continue
 		}
 		childMv, score := search(
 			!myTurn, minScore, depth+1, opponentMoves, &move)
+		reftMoves[childMv.hashKey()] = true
 		board.undoMove(move)
 		if score > minScore {
 			continue
 		}
-		bestChildMove = childMv
 		minScore = score
 		bestMove = move
 		if minScore <= bestParentScore {
@@ -111,7 +112,8 @@ func search(
 	return bestMove, minScore
 }
 
-func generateMoves(myTurn bool, refutationMove boardMove) ([]boardMove, uint) {
+func generateMoves(
+	myTurn bool, reftMoves map[int]bool) ([]boardMove, uint) {
 	var pieceMap map[int][]*piece
 	if myTurn {
 		pieceMap = game.myPieces
@@ -130,19 +132,16 @@ func generateMoves(myTurn bool, refutationMove boardMove) ([]boardMove, uint) {
 			attacks |= pieceAttacks
 		}
 	}
-	// Refutation move index
-	reftMoveIndex := -1
-	for i, move := range moves {
-		if move == refutationMove {
-			reftMoveIndex = i
-			break
+	foundReftMoves := make([]boardMove, 0)
+	otherMoves := make([]boardMove, 0)
+	for _, move := range moves {
+		if reftMoves[move.hashKey()] {
+			foundReftMoves = append(foundReftMoves, move)
+		} else {
+			otherMoves = append(otherMoves, move)
 		}
 	}
-	if reftMoveIndex > 0 {
-		// Place refutation move first so that it triggers a cutoff
-		moves = append([]boardMove{refutationMove}, moves...)
-	}
 	// TODO: come up with some meaningful sorting
-	// sort.Sort(sortInt(moves))
-	return moves, attacks
+	// Place refutation move first so that it triggers a cutoff
+	return append(foundReftMoves, otherMoves...), attacks
 }
