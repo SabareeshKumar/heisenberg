@@ -33,15 +33,33 @@ func (m UserMove) ToBoardMove() (boardMove, error) {
 	toIndex, err := toIndex(m.To)
 	if err != nil {
 		return boardMove{}, err
-	}	
+	}
 	if piece.id != king || int(math.Abs(float64(toIndex-fromIndex))) != 2 {
+		capturedPc := pieces[toIndex]
 		bm := boardMove{
 			From:         fromIndex,
 			To:           toIndex,
 			castlingFrom: -1,
 			castlingTo:   -1,
-			captured:     pieces[toIndex],
+			captured:     capturedPc,
 			PromotedPc:   -1,
+		}
+		if piece.id != pawn {
+			return bm, nil
+		}
+		// Handle en passant move
+		if piece.color == black {
+			if fromIndex-toIndex == 9 && capturedPc == nil {
+				bm.captured = pieces[fromIndex-1]
+			} else if fromIndex-toIndex == 7 && capturedPc == nil {
+				bm.captured = pieces[fromIndex+1]
+			}
+		} else {
+			if toIndex-fromIndex == 9 && capturedPc == nil {
+				bm.captured = pieces[fromIndex+1]
+			} else if toIndex-fromIndex == 7 && capturedPc == nil {
+				bm.captured = pieces[fromIndex-1]
+			}
 		}
 		return bm, nil
 	}

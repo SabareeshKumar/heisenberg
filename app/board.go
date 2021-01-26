@@ -68,11 +68,13 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 		} else {
 			game.materialBalance -= weights[capturedPc.id]
 		}
+		capturedPos := int(math.Log2(float64(capturedPc.position)))
 		if capturedPc.color == white {
-			brd.hash ^= whiteHashKeys[capturedPc.id][bm.To]
+			brd.hash ^= whiteHashKeys[capturedPc.id][capturedPos]
 		} else {
-			brd.hash ^= blackHashKeys[capturedPc.id][bm.To]
+			brd.hash ^= blackHashKeys[capturedPc.id][capturedPos]
 		}
+		brd.pieces[capturedPos] = nil
 	}
 	brd.pieces[bm.From] = nil
 	brd.pieces[bm.To] = pc
@@ -134,6 +136,7 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 		brd.hash ^= blackHashKeys[pc.id][bm.To]
 	}
 	capturedPc := bm.captured
+	capturedPos := bm.To
 	if capturedPc != nil {
 		capturedPc.captured = false
 		if capturedPc.color != game.myColor {
@@ -141,13 +144,15 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 		} else {
 			game.materialBalance += weights[capturedPc.id]
 		}
+		capturedPos = int(math.Log2(float64(capturedPc.position)))
 		if capturedPc.color == white {
-			brd.hash ^= whiteHashKeys[capturedPc.id][bm.To]
+			brd.hash ^= whiteHashKeys[capturedPc.id][capturedPos]
 		} else {
-			brd.hash ^= blackHashKeys[capturedPc.id][bm.To]
+			brd.hash ^= blackHashKeys[capturedPc.id][capturedPos]
 		}
 	}
-	brd.pieces[bm.To] = capturedPc
+	brd.pieces[bm.To] = nil
+	brd.pieces[capturedPos] = capturedPc
 	pc.position = 1 << bm.From
 	pc.moveCount--
 	if bm.castlingFrom != -1 {

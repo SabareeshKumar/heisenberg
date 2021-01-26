@@ -294,8 +294,9 @@ func whitePawnMoves(piece *piece) ([]boardMove, uint) {
 		} else {
 			sidePc := pieces[pos-1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(
-					moves, newBoardMove(pos, pos+7, -1, -1, -1, &attacks))
+				bm := newBoardMove(pos, pos+7, -1, -1, -1, &attacks)
+				bm.captured = sidePc
+				moves = append(moves, bm)
 			}
 		}
 	}
@@ -307,8 +308,9 @@ func whitePawnMoves(piece *piece) ([]boardMove, uint) {
 		} else {
 			sidePc := pieces[pos+1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(
-					moves, newBoardMove(pos, pos+9, -1, -1, -1, &attacks))
+				bm := newBoardMove(pos, pos+9, -1, -1, -1, &attacks)
+				bm.captured = sidePc
+				moves = append(moves, bm)
 			}
 		}
 	}
@@ -366,8 +368,9 @@ func blackPawnMoves(piece *piece) ([]boardMove, uint) {
 		} else {
 			sidePc := pieces[pos-1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(
-					moves, newBoardMove(pos, pos-9, -1, -1, -1, &attacks))
+				bm := newBoardMove(pos, pos-9, -1, -1, -1, &attacks)
+				bm.captured = sidePc
+				moves = append(moves, bm)
 			}
 		}
 	}
@@ -379,8 +382,9 @@ func blackPawnMoves(piece *piece) ([]boardMove, uint) {
 		} else {
 			sidePc := pieces[pos+1]
 			if sidePc != nil && sidePc.enpassantMove == game.moveCount {
-				moves = append(
-					moves, newBoardMove(pos, pos-7, -1, -1, -1, &attacks))
+				bm := newBoardMove(pos, pos-7, -1, -1, -1, &attacks)
+				bm.captured = sidePc
+				moves = append(moves, bm)
 			}
 		}
 	}
