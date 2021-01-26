@@ -4,7 +4,7 @@ type piece struct {
 	id            int
 	name          string
 	color         int
-	position      uint // position in powers of 2
+	position      int
 	moveGenerator func(*piece) ([]boardMove, uint)
 	captured      bool
 	moveCount     int // Number of times piece has moved
@@ -44,7 +44,7 @@ var whiteMeta = map[int]pieceMeta{
 	pawn:   pieceMeta{"White Pawn", whitePawnMoves},
 }
 
-func newBlackPiece(pieceType int, position uint) *piece {
+func newBlackPiece(pieceType int, position int) *piece {
 	return &piece{
 		id:            pieceType,
 		name:          blackMeta[pieceType].name,
@@ -57,7 +57,7 @@ func newBlackPiece(pieceType int, position uint) *piece {
 	}
 }
 
-func newWhitePiece(pieceType int, position uint) *piece {
+func newWhitePiece(pieceType int, position int) *piece {
 	return &piece{
 		id:            pieceType,
 		name:          whiteMeta[pieceType].name,

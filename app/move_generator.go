@@ -66,7 +66,7 @@ func canCastle(kingFrom, kingTo int) bool {
 func kingMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
 	var attacks uint
-	pos := int(math.Log2(float64(piece.position)))
+	pos := piece.position
 	rank, file := getRankFile(pos)
 	if file >= 2 { // Left
 		moves = append(moves, newBoardMove(pos, pos-1, -1, -1, -1, &attacks))
@@ -117,7 +117,7 @@ func queenMoves(piece *piece) ([]boardMove, uint) {
 func rookMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
 	var attacks uint
-	pos := int(math.Log2(float64(piece.position)))
+	pos := piece.position
 	rank, file := getRankFile(pos)
 	pieces := game.board.pieces
 	// Traverse file upwards until obstructed
@@ -162,7 +162,7 @@ func rookMoves(piece *piece) ([]boardMove, uint) {
 func bishopMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
 	var attacks uint
-	pos := int(math.Log2(float64(piece.position)))
+	pos := piece.position
 	rank, file := getRankFile(pos)
 	pieces := game.board.pieces
 	// Traverse top right diagonal until obstructed
@@ -215,7 +215,7 @@ func bishopMoves(piece *piece) ([]boardMove, uint) {
 func knightMoves(piece *piece) ([]boardMove, uint) {
 	moves := make([]boardMove, 0)
 	var attacks uint
-	pos := int(math.Log2(float64(piece.position)))
+	pos := piece.position
 	rank, file := getRankFile(pos)
 	// Clock wise moves from top right
 	if file <= 7 && rank <= 6 {
@@ -271,7 +271,7 @@ func whitePromotionMoves(piece *piece, file, pos int) ([]boardMove, uint) {
 }
 
 func whitePawnMoves(piece *piece) ([]boardMove, uint) {
-	pos := int(math.Log2(float64(piece.position)))
+	pos := piece.position
 	rank, file := getRankFile(pos)
 	if rank == 7 {
 		return whitePromotionMoves(piece, file, pos)
@@ -344,7 +344,7 @@ func blackPromotionMoves(piece *piece, file, pos int) ([]boardMove, uint) {
 }
 
 func blackPawnMoves(piece *piece) ([]boardMove, uint) {
-	pos := int(math.Log2(float64(piece.position)))
+	pos := piece.position
 	rank, file := getRankFile(pos)
 	if rank == 2 {
 		return blackPromotionMoves(piece, file, pos)

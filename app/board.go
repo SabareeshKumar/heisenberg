@@ -12,28 +12,28 @@ type boardConfig struct {
 
 func newBoard() *boardConfig {
 	pieces := make([]*piece, 64)
-	pieces[0] = newWhitePiece(rook, 1<<0)
-	pieces[1] = newWhitePiece(knight, 1<<1)
-	pieces[2] = newWhitePiece(bishop, 1<<2)
-	pieces[3] = newWhitePiece(queen, 1<<3)
-	pieces[4] = newWhitePiece(king, 1<<4)
-	pieces[5] = newWhitePiece(bishop, 1<<5)
-	pieces[6] = newWhitePiece(knight, 1<<6)
-	pieces[7] = newWhitePiece(rook, 1<<7)
+	pieces[0] = newWhitePiece(rook, 0)
+	pieces[1] = newWhitePiece(knight, 1)
+	pieces[2] = newWhitePiece(bishop, 2)
+	pieces[3] = newWhitePiece(queen, 3)
+	pieces[4] = newWhitePiece(king, 4)
+	pieces[5] = newWhitePiece(bishop, 5)
+	pieces[6] = newWhitePiece(knight, 6)
+	pieces[7] = newWhitePiece(rook, 7)
 	for i := 8; i <= 15; i++ {
-		pieces[i] = newWhitePiece(pawn, 1<<i)
+		pieces[i] = newWhitePiece(pawn, i)
 	}
 	for i := 48; i <= 55; i++ {
-		pieces[i] = newBlackPiece(pawn, 1<<i)
+		pieces[i] = newBlackPiece(pawn, i)
 	}
-	pieces[56] = newBlackPiece(rook, 1<<56)
-	pieces[57] = newBlackPiece(knight, 1<<57)
-	pieces[58] = newBlackPiece(bishop, 1<<58)
-	pieces[59] = newBlackPiece(queen, 1<<59)
-	pieces[60] = newBlackPiece(king, 1<<60)
-	pieces[61] = newBlackPiece(bishop, 1<<61)
-	pieces[62] = newBlackPiece(knight, 1<<62)
-	pieces[63] = newBlackPiece(rook, 1<<63)
+	pieces[56] = newBlackPiece(rook, 56)
+	pieces[57] = newBlackPiece(knight, 57)
+	pieces[58] = newBlackPiece(bishop, 58)
+	pieces[59] = newBlackPiece(queen, 59)
+	pieces[60] = newBlackPiece(king, 60)
+	pieces[61] = newBlackPiece(bishop, 61)
+	pieces[62] = newBlackPiece(knight, 62)
+	pieces[63] = newBlackPiece(rook, 63)
 	board := boardConfig{}
 	board.pieces = pieces
 	for i := 0; i <= 15; i++ {
@@ -68,7 +68,7 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 		} else {
 			game.materialBalance -= weights[capturedPc.id]
 		}
-		capturedPos := int(math.Log2(float64(capturedPc.position)))
+		capturedPos := capturedPc.position
 		if capturedPc.color == white {
 			brd.hash ^= whiteHashKeys[capturedPc.id][capturedPos]
 		} else {
@@ -78,14 +78,14 @@ func (brd *boardConfig) alterPosition(bm boardMove) error {
 	}
 	brd.pieces[bm.From] = nil
 	brd.pieces[bm.To] = pc
-	pc.position = 1 << bm.To
+	pc.position = bm.To
 	game.moveCount++
 	pc.moveCount++
 	if bm.castlingFrom != -1 {
 		rookPc := brd.pieces[bm.castlingFrom]
 		brd.pieces[bm.castlingFrom] = nil
 		brd.pieces[bm.castlingTo] = rookPc
-		rookPc.position = 1 << bm.castlingTo
+		rookPc.position = bm.castlingTo
 		rookPc.moveCount++
 		brd.hash ^= keys[rookPc.id][bm.castlingFrom]
 		brd.hash ^= keys[rookPc.id][bm.castlingTo]
@@ -144,7 +144,7 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 		} else {
 			game.materialBalance += weights[capturedPc.id]
 		}
-		capturedPos = int(math.Log2(float64(capturedPc.position)))
+		capturedPos = capturedPc.position
 		if capturedPc.color == white {
 			brd.hash ^= whiteHashKeys[capturedPc.id][capturedPos]
 		} else {
@@ -153,13 +153,13 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	}
 	brd.pieces[bm.To] = nil
 	brd.pieces[capturedPos] = capturedPc
-	pc.position = 1 << bm.From
+	pc.position = bm.From
 	pc.moveCount--
 	if bm.castlingFrom != -1 {
 		rookPc := brd.pieces[bm.castlingTo]
 		brd.pieces[bm.castlingFrom] = rookPc
 		brd.pieces[bm.castlingTo] = nil
-		rookPc.position = 1 << bm.castlingFrom
+		rookPc.position = bm.castlingFrom
 		rookPc.moveCount--
 		brd.hash ^= keys[rookPc.id][bm.castlingFrom]
 		brd.hash ^= keys[rookPc.id][bm.castlingTo]

@@ -1,9 +1,5 @@
 package app
 
-import (
-	"math"
-)
-
 type tpnMeta struct {
 	depth    int
 	score    float32
@@ -14,7 +10,7 @@ func getKey(myTurn bool, lastMove *boardMove) int64 {
 	board := game.board
 	key := board.hash ^ turnHash[myTurn]
 	myKing := game.myPieces[king][0]
-	pos := int(math.Log2(float64(myKing.position)))
+	pos := myKing.position
 	if canCastle(pos, pos-2) {
 		key ^= myCastlingHash[0]
 	}
@@ -22,7 +18,7 @@ func getKey(myTurn bool, lastMove *boardMove) int64 {
 		key ^= myCastlingHash[1]
 	}
 	otherKing := game.otherPieces[king][0]
-	pos = int(math.Log2(float64(otherKing.position)))
+	pos = otherKing.position
 	if canCastle(pos, pos-2) {
 		key ^= otherCastlingHash[0]
 	}

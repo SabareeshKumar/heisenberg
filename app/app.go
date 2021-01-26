@@ -117,9 +117,12 @@ func MyMove() (UserMove, error) {
 	tableHits = 0
 	myMov, _ := search(
 		true, float32(math.MaxInt32), 1, []boardMove{}, game.lastMove)
-	fmt.Printf("Evaluated %d board states:\n", evaluationsPerSearch)
-	fmt.Println("Number of table hits:", tableHits)
-	fmt.Println("Hash table length:", len(game.tpnTbl))
+	if debugMode {
+		fmt.Printf("Evaluated %d board states:\n", evaluationsPerSearch)
+		fmt.Println("Number of table hits:", tableHits)
+		fmt.Println("Hash table length:", len(game.tpnTbl))
+		fmt.Println("Move count:", game.moveCount)
+	}
 	err := game.board.alterPosition(myMov)
 	if err != nil {
 		return UserMove{}, err
@@ -228,11 +231,11 @@ func inCheckSimple(myTurn bool, attacks uint) bool {
 	} else {
 		kingPc = game.otherPieces[king][0]
 	}
-	return (kingPc.position & attacks) != 0
+	return (1 << kingPc.position & attacks) != 0
 }
 
 func inCheck(kingPc *piece, otherPieces map[int][]*piece) bool {
-	brdIndex := int(math.Log2(float64(kingPc.position)))
+	brdIndex := kingPc.position
 	for _, pieces := range otherPieces {
 		for _, piece := range pieces {
 			if piece.captured {
