@@ -115,13 +115,15 @@ func MakeMove(uMove boardMove) error {
 func MyMove() (UserMove, error) {
 	evaluationsPerSearch = 0
 	tableHits = 0
-	myMov, _ := search(
-		true, float32(math.MaxInt32), 1, []boardMove{}, game.lastMove)
+	myMov, score, _ := search(
+		true, float32(math.MaxInt32), 1, []boardMove{},
+		game.lastMove, make([]boardMove, 0))
 	if debugMode {
 		fmt.Printf("Evaluated %d board states:\n", evaluationsPerSearch)
 		fmt.Println("Number of table hits:", tableHits)
 		fmt.Println("Hash table length:", len(game.tpnTbl))
 		fmt.Println("Move count:", game.moveCount)
+		fmt.Println("Move score:", score)
 	}
 	err := game.board.alterPosition(myMov)
 	if err != nil {

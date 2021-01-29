@@ -2,7 +2,6 @@ package app
 
 import (
 	"math"
-	// "sort"
 )
 
 type sortInt []boardMove
@@ -32,19 +31,21 @@ func (bm sortInt) Swap(i, j int) {
 
 func search(
 	myTurn bool, bestParentScore float32, depth int,
-	moves []boardMove, lastMove *boardMove) (boardMove, float32) {
+	moves []boardMove, lastMove *boardMove,
+	path []boardMove) (boardMove, float32, []boardMove) {
 	hResult := hashedResult(myTurn, maxDepth-depth+1, lastMove)
 	if hResult != nil {
 		tableHits++
-		return hResult.bestMove, hResult.score
+		return hResult.bestMove, hResult.score, path
 	}
 	if depth > maxDepth {
 		evaluationsPerSearch++
 		move, score := boardMove{}, eval()
 		hashResult(myTurn, 0, score, move, lastMove)
-		return boardMove{}, eval()
+		return boardMove{}, eval(), path
 	}
 	var bestMove boardMove
+	var bestPath []boardMove
 	reftMoves := make(map[int]bool, 0)
 	board := game.board
 	if depth == 1 {
@@ -66,20 +67,23 @@ func search(
 				board.undoMove(move)
 				continue
 			}
-			childMv, score := search(
-				!myTurn, maxScore, depth+1, opponentMoves, &move)
+			childMv, score, spath := search(
+				!myTurn, maxScore, depth+1, opponentMoves, &move, path)
 			reftMoves[childMv.hashKey()] = true
 			board.undoMove(move)
 			if score < maxScore {
 				continue
 			}
+			bestPath = spath
 			maxScore = score
 			bestMove = move
 			if maxScore >= bestParentScore {
-				return bestMove, maxScore // alpha-pruning
+				path = append(path, append(bestPath, bestMove)...)
+				return bestMove, maxScore, path // alpha-pruning
 			}
 		}
-		return bestMove, maxScore
+		path = append(path, append(bestPath, bestMove)...)
+		return bestMove, maxScore, path
 	}
 	minScore := float32(math.MaxInt32)
 	defer func() {
@@ -96,20 +100,23 @@ func search(
 			board.undoMove(move)
 			continue
 		}
-		childMv, score := search(
-			!myTurn, minScore, depth+1, opponentMoves, &move)
+		childMv, score, spath := search(
+			!myTurn, minScore, depth+1, opponentMoves, &move, path)
 		reftMoves[childMv.hashKey()] = true
 		board.undoMove(move)
 		if score > minScore {
 			continue
 		}
+		bestPath = spath
 		minScore = score
 		bestMove = move
 		if minScore <= bestParentScore {
-			return bestMove, minScore // beta-pruning
+			path = append(path, append(bestPath, bestMove)...)
+			return bestMove, minScore, path // beta-pruning
 		}
 	}
-	return bestMove, minScore
+	path = append(path, append(bestPath, bestMove)...)
+	return bestMove, minScore, path
 }
 
 func generateMoves(
