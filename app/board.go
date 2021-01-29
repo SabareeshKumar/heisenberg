@@ -171,7 +171,7 @@ func (brd *boardConfig) undoMove(bm boardMove) {
 	}
 	pwn := pc.promotedBy
 	// Check if move to be undone is a promotion move
-	if pwn == nil || pc.moveCount > 0 {
+	if pwn == nil || pc.moveCount >= 0 {
 		return
 	}
 	brd.pieces[bm.From] = pwn

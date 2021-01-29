@@ -33,16 +33,14 @@ func search(
 	myTurn bool, bestParentScore float32, depth int,
 	moves []boardMove, lastMove *boardMove,
 	path []boardMove) (boardMove, float32, []boardMove) {
+	if depth > maxDepth {
+		score := quiescenceSearch(myTurn, bestParentScore, 1, moves)
+		return boardMove{}, score, path
+	}
 	hResult := hashedResult(myTurn, maxDepth-depth+1, lastMove)
 	if hResult != nil {
 		tableHits++
 		return hResult.bestMove, hResult.score, path
-	}
-	if depth > maxDepth {
-		evaluationsPerSearch++
-		move, score := boardMove{}, eval()
-		hashResult(myTurn, 0, score, move, lastMove)
-		return boardMove{}, eval(), path
 	}
 	var bestMove boardMove
 	var bestPath []boardMove
@@ -117,6 +115,83 @@ func search(
 	}
 	path = append(path, append(bestPath, bestMove)...)
 	return bestMove, minScore, path
+}
+
+func quiescenceSearch(
+	myTurn bool, bestParentScore float32, depth int,
+	moves []boardMove) float32 {
+	defer func() {
+		evaluationsPerSearch++
+	}()
+	if depth > quiescenceDepth {
+		return eval()
+	}
+	reftMoves := make(map[int]bool, 0)
+	board := game.board
+	if myTurn {
+		maxScore := float32(math.MinInt32)
+		foundMove := false
+		for _, move := range moves {
+			if move.captured == nil && move.PromotedPc <= 0 {
+				// Discard quiet moves
+				continue
+			}
+			if !isMoveValid(move) {
+				continue
+			}
+			board.alterPosition(move)
+			opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
+			if inCheckSimple(myTurn, attacks) {
+				board.undoMove(move)
+				continue
+			}
+			foundMove = true
+			score := quiescenceSearch(!myTurn, maxScore, depth+1, opponentMoves)
+			board.undoMove(move)
+			if score < maxScore {
+				continue
+			}
+			maxScore = score
+			if maxScore >= bestParentScore {
+				return maxScore // alpha-pruning
+			}
+		}
+		if !foundMove { // All moves are quiet. Just evaluate the board.
+			return eval()
+		}
+		return maxScore
+	}
+	minScore := float32(math.MaxInt32)
+	foundMove := false
+	for _, move := range moves {
+		if move.captured == nil && move.PromotedPc <= 0 {
+			// Discard quiet moves
+			continue
+		}
+		if !isMoveValid(move) {
+			continue
+		}
+		board.alterPosition(move)
+		opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
+		if inCheckSimple(myTurn, attacks) {
+			board.undoMove(move)
+			continue
+		}
+		foundMove = true
+		score := quiescenceSearch(!myTurn, minScore, depth+1, opponentMoves)
+		board.undoMove(move)
+		if score > minScore {
+			continue
+		}
+		minScore = score
+		if minScore <= bestParentScore {
+			return minScore // beta-pruning
+		}
+	}
+	if !foundMove { // All moves are quiet. Just evaluate the board.
+		return eval()
+	}
+	return minScore
 }
 
 func generateMoves(
