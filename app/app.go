@@ -57,6 +57,9 @@ var myCastlingHash []int64
 // Hash keys for king & queen side castling rights of opponent
 var otherCastlingHash []int64
 
+// Global refutation table
+var reftTbl map[bool][]int
+
 // InitGame sets up a new game.
 func InitGame(userColorChoice int) error {
 	whitePieces := make(map[int][]*piece, 16)
@@ -82,6 +85,10 @@ func InitGame(userColorChoice int) error {
 		game.myColor = white
 		game.otherPieces = blackPieces
 		game.myPieces = whitePieces
+	}
+	reftTbl = map[bool][]int{
+		true:  make([]int, 63*100+63+1),
+		false: make([]int, 63*100+63+1),
 	}
 	return loadOpeningBook(userColorChoice)
 }

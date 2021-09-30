@@ -2,31 +2,30 @@ package app
 
 import (
 	"math"
+	"sort"
 )
 
-type sortInt []boardMove
-
-func (bm sortInt) Len() int {
-	return len(bm)
+type moveSorter struct {
+	moves  []boardMove
+	myTurn bool
 }
 
-func (bm sortInt) Less(i, j int) bool {
-	score1, score2 := float32(-1), float32(-1)
-	if isMoveLegal(bm[i]) {
-		game.board.alterPosition(bm[i])
-		score1 = eval()
-		game.board.undoMove(bm[i])
-	}
-	if isMoveLegal(bm[j]) {
-		game.board.alterPosition(bm[j])
-		score1 = eval()
-		game.board.undoMove(bm[j])
-	}
-	return score1 > score2
+func (s *moveSorter) Len() int {
+	return len(s.moves)
 }
 
-func (bm sortInt) Swap(i, j int) {
-	bm[i], bm[j] = bm[j], bm[i]
+func (s *moveSorter) Less(i, j int) bool {
+	iReft := reftTbl[s.myTurn][s.moves[i].hashKey()]
+	jReft := reftTbl[s.myTurn][s.moves[j].hashKey()]
+	if iReft != jReft {
+		// Place refutation move first so that it triggers a cutoff
+		return iReft > jReft
+	}
+	return s.moves[i].captured != nil
+}
+
+func (s *moveSorter) Swap(i, j int) {
+	s.moves[i], s.moves[j] = s.moves[j], s.moves[i]
 }
 
 func search(
@@ -43,11 +42,12 @@ func search(
 		return hResult.bestMove, hResult.score, path
 	}
 	var bestMove boardMove
+	bestMove.From = -1
+	bestMove.To = -1
 	var bestPath []boardMove
-	reftMoves := make(map[int]bool, 0)
 	board := game.board
 	if depth == 1 {
-		moves, _ = generateMoves(myTurn, reftMoves)
+		moves, _ = generateMoves(myTurn)
 	}
 	if myTurn {
 		maxScore := float32(math.MinInt32)
@@ -60,16 +60,16 @@ func search(
 				continue
 			}
 			board.alterPosition(move)
-			opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
+			opponentMoves, attacks := generateMoves(!myTurn)
 			if inCheckSimple(myTurn, attacks) {
 				board.undoMove(move)
 				continue
 			}
 			childMv, score, spath := search(
 				!myTurn, maxScore, depth+1, opponentMoves, &move, path)
-			reftMoves[childMv.hashKey()] = true
+			reftTbl[myTurn][childMv.hashKey()] += (maxDepth - depth + 1)
 			board.undoMove(move)
-			if score < maxScore {
+			if bestMove.From != -1 && score <= maxScore {
 				continue
 			}
 			bestPath = spath
@@ -93,16 +93,16 @@ func search(
 			continue
 		}
 		board.alterPosition(move)
-		opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
+		opponentMoves, attacks := generateMoves(!myTurn)
 		if inCheckSimple(myTurn, attacks) {
 			board.undoMove(move)
 			continue
 		}
 		childMv, score, spath := search(
 			!myTurn, minScore, depth+1, opponentMoves, &move, path)
-		reftMoves[childMv.hashKey()] = true
+		reftTbl[myTurn][childMv.hashKey()] += (maxDepth - depth + 1)
 		board.undoMove(move)
-		if score > minScore {
+		if bestMove.From != -1 && score >= minScore {
 			continue
 		}
 		bestPath = spath
@@ -126,7 +126,6 @@ func quiescenceSearch(
 	if depth > quiescenceDepth {
 		return eval()
 	}
-	reftMoves := make(map[int]bool, 0)
 	board := game.board
 	if myTurn {
 		maxScore := float32(math.MinInt32)
@@ -140,7 +139,7 @@ func quiescenceSearch(
 				continue
 			}
 			board.alterPosition(move)
-			opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
+			opponentMoves, attacks := generateMoves(!myTurn)
 			if inCheckSimple(myTurn, attacks) {
 				board.undoMove(move)
 				continue
@@ -172,7 +171,7 @@ func quiescenceSearch(
 			continue
 		}
 		board.alterPosition(move)
-		opponentMoves, attacks := generateMoves(!myTurn, reftMoves)
+		opponentMoves, attacks := generateMoves(!myTurn)
 		if inCheckSimple(myTurn, attacks) {
 			board.undoMove(move)
 			continue
@@ -194,8 +193,7 @@ func quiescenceSearch(
 	return minScore
 }
 
-func generateMoves(
-	myTurn bool, reftMoves map[int]bool) ([]boardMove, uint) {
+func generateMoves(myTurn bool) ([]boardMove, uint) {
 	var pieceMap map[int][]*piece
 	if myTurn {
 		pieceMap = game.myPieces
@@ -214,16 +212,6 @@ func generateMoves(
 			attacks |= pieceAttacks
 		}
 	}
-	foundReftMoves := make([]boardMove, 0)
-	otherMoves := make([]boardMove, 0)
-	for _, move := range moves {
-		if reftMoves[move.hashKey()] {
-			foundReftMoves = append(foundReftMoves, move)
-		} else {
-			otherMoves = append(otherMoves, move)
-		}
-	}
-	// TODO: come up with some meaningful sorting
-	// Place refutation move first so that it triggers a cutoff
-	return append(foundReftMoves, otherMoves...), attacks
+	sort.Sort(&moveSorter{moves, myTurn})
+	return moves, attacks
 }

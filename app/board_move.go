@@ -21,7 +21,7 @@ func (m boardMove) String() string {
 }
 
 func (m boardMove) hashKey() int {
-	return m.From*100*100 + m.To
+	return m.From*100 + m.To
 }
 
 func (m boardMove) toUserMove() (UserMove, error) {
